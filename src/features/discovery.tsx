@@ -3,12 +3,13 @@ import { useEventListener } from 'expo';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { ArrowLeft, ArrowRight, Check, Headphones, Heart, MessageCircle, Mic, Pause, Play, Sparkles, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, Keyboard, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { fontFamilies, useThemeColors } from '../theme';
 import type { Candidate } from '../types';
 import { ActionButton } from '../ui';
 import { DiscoveryAvatar } from './discovery-art';
 import { voiceCandidates, type Side, type VoiceCandidate } from './discovery-data';
+import { useDiscoverySounds } from './discovery-sounds';
 import { DiscoveryStage, useReduceDiscoveryMotion, type EarSelection } from './discovery-stage';
 import { useVoiceComparisonProgress } from './voice-comparison-progress';
 
@@ -183,6 +184,7 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
   const [error, setError] = useState('');
   const player = useAudioPlayer(null, { updateInterval: 120 });
   const playback = useAudioPlayerStatus(player);
+  const playSound = useDiscoverySounds(active);
   const nextClip = useRef<VoiceClip | null>(null);
   const lastPlayedSide = useRef<Side | null>(null);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -286,13 +288,14 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
     if (selectionLock.current || !left || !right || winner) return;
     selectionLock.current = true;
     stop();
+    void playSound('selection');
     Keyboard.dismiss();
     setError('');
     setVoiceOpen(false);
     setVoiceText('');
     setVoiceFeedback('');
     setSelection({ side, source });
-  }, [left, right, stop, winner]);
+  }, [left, playSound, right, stop, winner]);
 
   /** 耳がアバターに到着したときに選択を表示する。 */
   const onLand = useCallback(() => {
@@ -313,8 +316,9 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
     setSelection(null);
     setShowTranscript(false);
     setPicks((previous) => previous.length === round ? [...previous, candidate] : previous);
+    if (round === 2) void playSound('match');
     scroll.current?.scrollTo({ y: 0, animated: false });
-  }, [landed, left, right, round, selection, setPicks]);
+  }, [landed, left, playSound, right, round, selection, setPicks]);
 
   useEffect(() => {
     if (!landed) return;
@@ -536,7 +540,7 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
           onPress={() => setShowCredits((shown) => !shown)}
           style={styles.textButton}
         >
-          <Text style={[styles.transcriptLink, { color: colors.blueText }]}>音声サンプルのクレジット</Text>
+          <Text style={[styles.transcriptLink, { color: colors.blueText }]}>音声・効果音のクレジット</Text>
         </Pressable>
         {showCredits ? (
           <View style={[styles.transcript, { backgroundColor: colors.surface, borderColor: colors.line }]}>
@@ -546,6 +550,16 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
                 {candidate.name}　{candidate.voiceCredit}
               </Text>
             ))}
+            <Text style={[styles.transcriptText, { color: colors.ink }]}>
+              効果音はOtoLogicの「ボタン ポチッ01-1」と「キラキラ02-1」を長さ・音量を調整して使用しています。
+            </Text>
+            <Text
+              accessibilityRole="link"
+              style={[styles.transcriptText, { color: colors.blueText, textDecorationLine: 'underline' }]}
+              onPress={() => { void Linking.openURL('https://creativecommons.org/licenses/by/4.0/deed.ja').catch(() => {}); }}
+            >
+              CC BY 4.0
+            </Text>
           </View>
         ) : null}
       </View>

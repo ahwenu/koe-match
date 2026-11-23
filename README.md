@@ -40,6 +40,8 @@ ELEVENLABS_API_KEY=
 
 APIはループバックにのみバインドする開発用サーバーです。APIキーはサーバー側に保持します。物理端末での外部サービス利用や本番のユーザー間マッチングには別途、認証付きバックエンドが必要です。候補の試聴にはVoice-matchingの合成音声４本を使用し、左右で聴けるよう８本のステレオファイルを同梱しています。[音源の取り込みとクレジット](docs/voice-matching/integration.md)
 
+聴きくらべの選択音とマッチ成立音には、OtoLogicの「[ボタン ポチッ01-1](https://otologic.jp/free/se/onmtp-others01.html)」と「[キラキラ02-1](https://otologic.jp/free/se/sparkle01.html)」を使用しています。[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja)の素材を、長さと音量を調整して同梱しています。
+
 ## 検証と開発記録
 
 ```sh
