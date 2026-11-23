@@ -8,10 +8,6 @@
 
 打ち合わせの長い書き起こしと、その後に話して伝えた開発指示は、Aqua Voiceで入力したテキストとしてCodexに渡した。話が前後する書き起こしから、企画の狙い、デモの３機能、担当範囲、未決事項を抜き出した。ここでのAqua Voiceの実利用は、アプリを作るための素材や指示を話して入力したこと。
 
-### 既存実装から参考にしたこと
-
-[Secret Tenderの既存リポジトリ](https://github.com/Jun0908/ethglobal-mumbai-2026-AIBot/tree/3c4ea47)を取得し、コミット `3c4ea47` のREADME・会話API・分岐処理を読んだ。既存版はNext.jsのWebアプリで、自由な返答のうち意図が明確なものだけを、用意した場面の進行につなげていた。この設計を参考に、新しく取得した [Koe Matchのリポジトリ](https://github.com/ahwenu/koe-match) にReact Native（Expo）でスマホ版を作り始めた。
-
 ### デモの３機能
 
 | 機能 | 企画時に想定した体験 |
