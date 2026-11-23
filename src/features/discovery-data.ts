@@ -1,64 +1,72 @@
-/** 声の聞き比べに使う、架空の成人プロフィールと試聴用音声。 */
+/** Voice-matching の架空の候補と、左右に振り分けた試聴用音声。 */
 import type { Candidate } from '../types';
 
 export type Side = 'left' | 'right';
-export type VoiceCandidate = Candidate & { voices: Record<Side, number> };
+export type VoiceCandidate = Candidate & {
+  speechStyle: string;
+  voiceCredit: string;
+  voices: Record<Side, number>;
+};
 
 export const voiceCandidates: readonly VoiceCandidate[] = [
   {
-    id: 'mio',
-    name: '澪',
-    age: 27,
-    tagline: '古本屋で、知らない物語を探す',
-    introduction: '澪です。休日は古本屋で、読んだことのない本を探すのが好きです。最近、心に残った物語は何ですか？',
-    interests: ['読書', '喫茶店'],
+    id: 'asmr-risa',
+    name: 'リサ',
+    tagline: '映画のあと、もう少しだけ歩く',
+    introduction: 'リサです。映画のあと、もう少しだけ、一緒に歩かない？',
+    interests: ['映画', '散歩'],
     color: '#DCE7D5',
-    initials: '澪',
+    initials: 'リ',
+    speechStyle: 'ささやき',
+    voiceCredit: 'VOICEVOX:九州そら（ささやき）',
     voices: {
-      left: require('../../assets/voices/mio-left.mp3'),
-      right: require('../../assets/voices/mio-right.mp3'),
+      left: require('../../assets/voices/risa-left.wav'),
+      right: require('../../assets/voices/risa-right.wav'),
     },
   },
   {
-    id: 'rin',
-    name: '凛',
-    age: 26,
-    tagline: '寄り道を、写真に残す',
-    introduction: '凛です。知らない道に入って、気になる景色を写真に撮るのが好き。次の休みに、どんな場所へ行きたい？',
-    interests: ['写真', '街歩き'],
+    id: 'asmr-akari',
+    name: 'あかり',
+    tagline: '雨の日、傘を分け合う',
+    introduction: 'あかりです。雨、やまないね。駅まで、この傘に入ってく？もうちょっと、こっちにおいで。',
+    interests: ['雨の日', '街歩き'],
     color: '#F8DAE4',
-    initials: '凛',
+    initials: 'あ',
+    speechStyle: 'ささやき',
+    voiceCredit: 'VOICEVOX:四国めたん（ささやき）',
     voices: {
-      left: require('../../assets/voices/rin-left.mp3'),
-      right: require('../../assets/voices/rin-right.mp3'),
+      left: require('../../assets/voices/akari-left.wav'),
+      right: require('../../assets/voices/akari-right.wav'),
     },
   },
   {
-    id: 'nagi',
-    name: '凪',
-    age: 28,
-    tagline: '海沿いを、日が落ちるまで歩く',
-    introduction: '凪です。夕方の海沿いを散歩するのが好きです。もし半日だけ自由に使えたら、何をして過ごしますか？',
-    interests: ['海', '散歩'],
+    id: 'asmr-shiori',
+    name: 'しおり',
+    tagline: 'イヤホンを片方ずつ、好きな曲を聴く',
+    introduction: 'しおりです。あ、この曲。片方どうぞ。サビだけ、一緒に聴いて？',
+    interests: ['音楽', '好きな曲'],
     color: '#D4E5EF',
-    initials: '凪',
+    initials: 'し',
+    speechStyle: 'ヒソヒソ',
+    voiceCredit: 'VOICEVOX:中部つるぎ（ヒソヒソ）',
     voices: {
-      left: require('../../assets/voices/nagi-left.mp3'),
-      right: require('../../assets/voices/nagi-right.mp3'),
+      left: require('../../assets/voices/shiori-left.wav'),
+      right: require('../../assets/voices/shiori-right.wav'),
     },
   },
   {
-    id: 'sara',
-    name: '紗良',
-    age: 25,
-    tagline: '季節のおやつを一緒に味わう',
-    introduction: '紗良です。週末は季節のお菓子を焼いて、友達に味見してもらいます。子どもの頃から好きなおやつってありますか？',
-    interests: ['お菓子作り', '紅茶'],
+    id: 'asmr-sana',
+    name: 'さな',
+    tagline: 'おやすみのあとも、少し電話する',
+    introduction: 'さなです。おやすみって言ったのにね。もうちょっとだけ、電話してていい？',
+    interests: ['電話', '夜の過ごし方'],
     color: '#FFF1B8',
-    initials: '紗',
+    initials: 'さ',
+    speechStyle: 'ささやき',
+    voiceCredit: 'VOICEVOX:あんこもん（ささやき）',
     voices: {
-      left: require('../../assets/voices/sara-left.mp3'),
-      right: require('../../assets/voices/sara-right.mp3'),
+      left: require('../../assets/voices/sana-left.wav'),
+      right: require('../../assets/voices/sana-right.wav'),
     },
   },
 ];

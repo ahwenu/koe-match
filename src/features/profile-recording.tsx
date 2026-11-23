@@ -1,6 +1,6 @@
 /** 質問を見ながら、Aqua Voiceの文字起こしや短い練習録音を行う。 */
-import { ArrowLeft, ArrowRight, Captions, MessageCircle, Mic, Pause, Play, RotateCcw, Square } from 'lucide-react-native';
-import { type ComponentRef, useRef } from 'react';
+import { ArrowLeft, ArrowRight, Captions, Keyboard as KeyboardIcon, MessageCircle, Mic, Pause, Play, RotateCcw, Square } from 'lucide-react-native';
+import { type ComponentRef, useRef, useState } from 'react';
 import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { fontFamilies, type ThemeColors, useThemeColors } from '../theme';
@@ -39,6 +39,7 @@ export function ProfileRecordingScreen({
   const styles = createStyles(colors);
   const recording = usePracticeRecording();
   const input = useRef<ComponentRef<typeof TextInput>>(null);
+  const [transcriptFocused, setTranscriptFocused] = useState(false);
   const questionIndex = step % questions.length;
   const isRecording = recording.phase === 'recording';
   const isBusy = recording.phase !== 'idle';
@@ -62,6 +63,7 @@ export function ProfileRecordingScreen({
       automaticallyAdjustKeyboardInsets
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={styles.screen}
+      keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.topBar}>
@@ -152,21 +154,26 @@ export function ProfileRecordingScreen({
 
       <View style={[styles.card, styles.transcriptCard]}>
         <Pressable
-          accessibilityLabel="文字起こしを入力"
+          accessibilityLabel={transcriptFocused ? 'キーボードを閉じる' : '文字起こしを入力'}
           accessibilityRole="button"
           disabled={isBusy}
-          onPress={() => input.current?.focus()}
+          onPress={() => {
+            if (transcriptFocused) input.current?.blur();
+            else input.current?.focus();
+          }}
           hitSlop={8}
           style={({ pressed }) => [styles.transcriptBadge, (isBusy || pressed) && styles.faded]}
         >
-          <Captions size={14} color={colors.blueText} />
-          <Text style={styles.transcriptBadgeLabel}>文字起こし</Text>
+          {transcriptFocused ? <KeyboardIcon size={14} color={colors.blueText} /> : <Captions size={14} color={colors.blueText} />}
+          <Text style={styles.transcriptBadgeLabel}>{transcriptFocused ? 'キーボードを閉じる' : '文字起こし'}</Text>
         </Pressable>
         <TextInput
           ref={input}
           accessibilityLabel={kind === 'intro' ? '自己紹介の記録' : '今日の出来事の記録'}
           value={text}
           onChangeText={onChangeText}
+          onFocus={() => setTranscriptFocused(true)}
+          onBlur={() => setTranscriptFocused(false)}
           autoFocus={focusTranscript}
           style={styles.input}
           placeholder={kind === 'intro' ? '休日は本を読んだり、喫茶店に行ったりします。' : '帰り道に新しいパン屋を見つけました。'}

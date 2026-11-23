@@ -111,7 +111,8 @@ export function getDateScene(
 /** 発話が選択肢に明確に一致したときだけ、選択番号を返す。 */
 export function findDateChoice(scene: DateScene, transcript: string): number {
   const phrase = transcript.normalize('NFKC').replace(/\s/g, '').replace(/[。.!！]+$/, '');
-  if (/^(?:1|一)(?:番(?:目)?|つ目)?$/.test(phrase)) return 0;
-  if (/^(?:2|二)(?:番(?:目)?|つ目)?$/.test(phrase)) return 1;
+  const number = /^([12一二])(?:(?:番(?:目)?|つ目)(?:です|でお願いします)?)?$/.exec(phrase)?.[1];
+  if (number) return number === '1' || number === '一' ? 0 : 1;
+
   return scene.choices.findIndex(({ label, phrases }) => phrase === label || phrases.test(phrase));
 }

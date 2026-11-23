@@ -4,10 +4,10 @@ import { fontFamilies, useThemeColors } from '../theme';
 import type { Candidate } from '../types';
 
 const avatars: Record<string, ImageSourcePropType> = {
-  mio: require('../../design/images/avatars/v33-haru.png'),
-  rin: require('../../design/images/avatars/v33-sora.png'),
-  nagi: require('../../design/images/avatars/v33-kei.png'),
-  sara: require('../../design/images/avatars/v33-nao.png'),
+  'asmr-risa': require('../../design/images/avatars/v33-haru.png'),
+  'asmr-akari': require('../../design/images/avatars/v33-sora.png'),
+  'asmr-shiori': require('../../design/images/avatars/v33-kei.png'),
+  'asmr-sana': require('../../design/images/avatars/v33-nao.png'),
   you: require('../../design/images/avatars/v33-you.png'),
 };
 

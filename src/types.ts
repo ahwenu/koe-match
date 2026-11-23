@@ -2,7 +2,6 @@
 export type Candidate = {
   id: string;
   name: string;
-  age: number;
   tagline: string;
   introduction: string;
   interests: string[];

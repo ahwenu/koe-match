@@ -1,7 +1,8 @@
 /** 場所を選び、架空の相手と会話を練習してからふりかえる。 */
+import * as Speech from 'expo-speech';
 import { Bookmark, Camera, Check, ChevronLeft, CircleHelp, Heart, Keyboard as KeyboardIcon, MapPin, Mic, Play, Send, Sparkles } from 'lucide-react-native';
-import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Image, Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Image, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { fontFamilies, useThemeColors, type ThemeColors } from '../theme';
 import type { Candidate } from '../types';
 import { ActionButton } from '../ui';
@@ -23,6 +24,7 @@ type DateScreenStage = 'picker' | 'practice' | 'review';
 
 const memoryIcons = [MapPin, Camera, CircleHelp];
 const memoryIndexes = Array.from({ length: sceneCount }, (_, index) => index);
+const placeRows = Array.from({ length: Math.ceil(datePlaces.length / 2) }, (_, index) => datePlaces.slice(index * 2, index * 2 + 2));
 
 /** 場所の雰囲気を示すラベルに、デザインのアクセント色を対応させる。 */
 function placeAccent(place: DatePlace, colors: ThemeColors) {
@@ -54,18 +56,23 @@ export default function DateScreen({ candidate, onDiscover, ...sessionProps }: D
 /** 返答の重複を避けながら、選択・会話・ふりかえりを遷移する。 */
 function DateSession({ candidate, onDiscover, speak, active = true, voiceRequest, onPracticeChange, generateReply }: Omit<DateScreenProps, 'candidate'> & { candidate: Candidate }) {
   const colors = useThemeColors();
+  const { height, width } = useWindowDimensions();
+  const tileImageHeight = height < 780 ? 82 : width >= 600 ? 116 : 94;
+  const sceneImageHeight = height < 780 ? 126 : width >= 600 ? 184 : 148;
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const input = useRef<ComponentRef<typeof TextInput>>(null);
   const currentAnswers = useRef<DateAnswer[] | null>(null);
   const pendingReply = useRef<symbol | null>(null);
   const isActive = useRef(active);
   const lastVoiceRequest = useRef(voiceRequest);
+  const handledFocus = useRef(0);
   const [stage, setStage] = useState<DateScreenStage>('picker');
   const [place, setPlace] = useState(datePlaces[0]);
   const [answers, setAnswers] = useState<DateAnswer[]>([]);
   const [draft, setDraft] = useState('');
   const [feedback, setFeedback] = useState('');
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [focusRequest, setFocusRequest] = useState(0);
   const [lastExchange, setLastExchange] = useState<{ message: string; reply: string } | null>(null);
   const [waitingForReply, setWaitingForReply] = useState(false);
   const [invited, setInvited] = useState(false);
@@ -84,16 +91,41 @@ function DateSession({ candidate, onDiscover, speak, active = true, voiceRequest
     pendingReply.current = null;
   }, []);
 
+  /** 読み上げを止めたあと、表示される入力欄にフォーカスを要求する。 */
+  const openVoiceEditor = useCallback(() => {
+    void Speech.stop().catch(() => {});
+    setVoiceOpen(true);
+    setFocusRequest((request) => request + 1);
+  }, []);
+
   useEffect(() => {
     if (voiceRequest === lastVoiceRequest.current) return;
     lastVoiceRequest.current = voiceRequest;
     if (!active || voiceRequest === undefined) return;
+    const frame = requestAnimationFrame(openVoiceEditor);
+    return () => cancelAnimationFrame(frame);
+  }, [active, openVoiceEditor, voiceRequest]);
+
+  useEffect(() => {
+    if (!active || !voiceOpen || waitingForReply || focusRequest === handledFocus.current) return;
     const frame = requestAnimationFrame(() => {
-      if (voiceOpen) input.current?.focus();
-      else setVoiceOpen(true);
+      const field = input.current;
+      if (!field) return;
+      field.focus();
+      handledFocus.current = focusRequest;
     });
     return () => cancelAnimationFrame(frame);
-  }, [active, voiceOpen, voiceRequest]);
+  }, [active, focusRequest, voiceOpen, waitingForReply]);
+
+  /** キーボードを閉じても、入力済みの返事は残す。 */
+  function toggleVoiceEditor() {
+    if (voiceOpen) {
+      Keyboard.dismiss();
+      setVoiceOpen(false);
+    } else {
+      openVoiceEditor();
+    }
+  }
 
   /** 会話画面を移動するとき、前の画面の入力や返信を片付ける。 */
   function moveTo(next: DateScreenStage) {
@@ -186,8 +218,8 @@ function DateSession({ candidate, onDiscover, speak, active = true, voiceRequest
   }
 
   /** 場所の選択、返答、ふりかえりをテキスト化した音声で操作する。 */
-  function submitVoice() {
-    const transcript = draft.trim();
+  function submitVoice(value: string) {
+    const transcript = value.trim();
     if (!transcript) return;
     if (scene) {
       void submitReply(transcript);
@@ -222,33 +254,39 @@ function DateSession({ candidate, onDiscover, speak, active = true, voiceRequest
   const voiceEditor = voiceOpen ? (
     <View style={styles.voiceEditor}>
       <Text style={[styles.caption, { color: colors.muted }]}>
-        {scene && generateReply
-          ? '自由な返事は候補情報と場面とともにAIサービスへ送信されます。'
-          : 'Aqua Voiceキーボードで話すか、直接入力できます。'}
+        {Platform.OS === 'ios'
+          ? '地球儀キーでAqua Voiceに切り替えるか、書き起こしを貼り付けられます。'
+          : 'Aqua Voiceでこの欄に入力するか、書き起こしを貼り付けられます。'}
       </Text>
+      {scene && generateReply ? (
+        <Text style={[styles.caption, { color: colors.muted }]}>自由な返事は候補情報と場面とともにAIサービスへ送信されます。</Text>
+      ) : null}
       <View style={styles.inputRow}>
         <TextInput
           ref={input}
-          autoFocus={active}
           accessibilityLabel={scene ? 'デート練習の返事' : '声で操作'}
           placeholder={scene ? '例：１番' : stage === 'picker' ? '例：公園にしたい' : '例：もう一度'}
           placeholderTextColor={colors.muted}
           value={draft}
           editable={!waitingForReply}
+          keyboardType="default"
+          showSoftInputOnFocus
+          autoCapitalize="none"
           onChangeText={(text) => {
             setDraft(text);
             setFeedback('');
           }}
           maxLength={160}
           returnKeyType="send"
-          onSubmitEditing={submitVoice}
+          submitBehavior="submit"
+          onSubmitEditing={({ nativeEvent }) => submitVoice(nativeEvent.text)}
           style={[styles.input, { color: colors.ink, borderColor: colors.line, backgroundColor: colors.background }]}
         />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={scene ? '返事を送る' : '実行する'}
           disabled={!draft.trim() || waitingForReply}
-          onPress={submitVoice}
+          onPress={() => submitVoice(draft)}
           style={({ pressed }) => [styles.sendButton, { backgroundColor: colors.primary }, (!draft.trim() || waitingForReply || pressed) && styles.pressed]}
         >
           <Send size={18} color={colors.onPrimary} />
@@ -260,56 +298,66 @@ function DateSession({ candidate, onDiscover, speak, active = true, voiceRequest
 
   if (stage === 'picker') {
     return (
-      <ScrollView
-        ref={scroll}
-        contentContainerStyle={styles.content}
-        contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      >
-        <Pressable onPress={onDiscover} accessibilityRole="button" accessibilityLabel="聴きくらべへ戻る" style={styles.back}>
-          <ChevronLeft size={22} color={colors.ink} />
-        </Pressable>
-        <View style={styles.titleGroup}>
-          <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>どこでデートする？</Text>
-          <Text style={[styles.caption, { color: colors.muted }]}>{candidate.name}さん（AI分身）との練習デート</Text>
+      <View style={styles.practice}>
+        <ScrollView
+          ref={scroll}
+          contentContainerStyle={styles.pickerContent}
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <Pressable onPress={onDiscover} accessibilityRole="button" accessibilityLabel="聴きくらべへ戻る" style={styles.back}>
+            <ChevronLeft size={22} color={colors.ink} />
+          </Pressable>
+          <View style={styles.titleGroup}>
+            <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>どこでデートする？</Text>
+            <Text style={[styles.caption, { color: colors.muted }]}>{candidate.name}さん（AI分身）との練習デート</Text>
+          </View>
+          <View style={styles.grid}>
+            {placeRows.map((row) => (
+              <View key={row[0].id} style={styles.gridRow}>
+                {row.map((option) => {
+                  const selected = place.id === option.id;
+                  return (
+                    <Pressable
+                      key={option.id}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`${option.label}、${option.mood}`}
+                      accessibilityState={{ checked: selected }}
+                      onPress={() => setPlace(option)}
+                      style={({ pressed }) => [styles.place, {
+                        borderColor: selected ? colors.primary : colors.line,
+                        backgroundColor: colors.surface,
+                      }, pressed && styles.pressed]}
+                    >
+                      <View style={[styles.placeImage, { height: tileImageHeight, backgroundColor: colors.surface2 }]}>
+                        <Image source={option.image} accessible={false} resizeMode="cover" style={styles.posterImage} />
+                      </View>
+                      {selected ? (
+                        <View style={[styles.placeCheck, { backgroundColor: colors.mint }]}>
+                          <Check size={13} color={colors.onPrimary} />
+                        </View>
+                      ) : null}
+                      <View style={styles.placeCopy}>
+                        <Text style={[styles.placeName, { color: colors.ink }]}>{option.label}</Text>
+                        <Text style={[styles.placeMood, placeAccent(option, colors)]}>{option.mood}</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+        <View style={[styles.pickerFooter, { backgroundColor: colors.background }]}>
+          <ActionButton label={`${place.label}で始める`} onPress={startPractice} />
+          <Pressable accessibilityRole="button" accessibilityState={{ expanded: voiceOpen }} onPress={toggleVoiceEditor} style={styles.voiceHint}>
+            <Mic size={14} color={colors.accentDark} />
+            <Text style={[styles.hint, { color: colors.muted }]}>「公園にしたい」のように話して選べます</Text>
+          </Pressable>
+          {voiceEditor}
         </View>
-        <View style={styles.grid}>
-          {datePlaces.map((option) => {
-            const selected = place.id === option.id;
-            return (
-              <Pressable
-                key={option.id}
-                accessibilityRole="radio"
-                accessibilityLabel={`${option.label}、${option.mood}`}
-                accessibilityState={{ checked: selected }}
-                onPress={() => setPlace(option)}
-                style={({ pressed }) => [styles.place, {
-                  borderColor: selected ? colors.primary : colors.line,
-                  backgroundColor: colors.surface,
-                }, pressed && styles.pressed]}
-              >
-                <Image source={option.image} accessible={false} style={[styles.placeImage, { backgroundColor: colors.surface2 }]} />
-                {selected ? (
-                  <View style={[styles.placeCheck, { backgroundColor: colors.mint }]}>
-                    <Check size={13} color={colors.onPrimary} />
-                  </View>
-                ) : null}
-                <View style={styles.placeCopy}>
-                  <Text style={[styles.placeName, { color: colors.ink }]}>{option.label}</Text>
-                  <Text style={[styles.placeMood, placeAccent(option, colors)]}>{option.mood}</Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-        <ActionButton label={`${place.label}で始める`} onPress={startPractice} />
-        <Pressable accessibilityRole="button" accessibilityState={{ expanded: voiceOpen }} onPress={() => setVoiceOpen((open) => !open)} style={styles.voiceHint}>
-          <Mic size={14} color={colors.accentDark} />
-          <Text style={[styles.hint, { color: colors.muted }]}>「公園にしたい」のように話して選べます</Text>
-        </Pressable>
-        {voiceEditor}
-      </ScrollView>
+      </View>
     );
   }
 
@@ -329,7 +377,7 @@ function DateSession({ candidate, onDiscover, speak, active = true, voiceRequest
           invited={invited}
           onInvite={sendDemoInvitation}
           onRestart={startPractice}
-          onVoice={() => setVoiceOpen((open) => !open)}
+          onVoice={toggleVoiceEditor}
           voiceOpen={voiceOpen}
         />
         {voiceEditor}
@@ -364,7 +412,9 @@ function DateSession({ candidate, onDiscover, speak, active = true, voiceRequest
         }}
       >
         <View style={[styles.sceneCard, { backgroundColor: colors.surface, borderColor: colors.line }]}>
-          <Image source={place.image} accessible={false} style={[styles.sceneImage, { backgroundColor: colors.surface2 }]} />
+          <View style={[styles.sceneImage, { height: sceneImageHeight, backgroundColor: colors.surface2 }]}>
+            <Image source={place.image} accessible={false} resizeMode="cover" style={styles.posterImage} />
+          </View>
           <View style={styles.sceneCaption}>
             <Text style={[styles.sceneTitle, { color: colors.ink }]}>シーン{answers.length + 1} · {scene.title}</Text>
             <Segments step={answers.length + 1} color={colors.yellow} remainder={colors.line} />
@@ -436,10 +486,7 @@ function DateSession({ candidate, onDiscover, speak, active = true, voiceRequest
             accessibilityRole="button"
             accessibilityLabel={voiceOpen ? '入力欄を閉じる' : '文字で返事する'}
             accessibilityState={{ expanded: voiceOpen }}
-            onPress={() => {
-              if (voiceOpen) Keyboard.dismiss();
-              setVoiceOpen((open) => !open);
-            }}
+            onPress={toggleVoiceEditor}
             style={[styles.keyboard, { backgroundColor: colors.surface2 }]}
           >
             <KeyboardIcon size={19} color={colors.muted} />
@@ -447,10 +494,7 @@ function DateSession({ candidate, onDiscover, speak, active = true, voiceRequest
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="声で返事する"
-            onPress={() => {
-              if (voiceOpen) input.current?.focus();
-              else setVoiceOpen(true);
-            }}
+            onPress={openVoiceEditor}
             style={styles.micTap}
           >
             <View style={[styles.mic, { backgroundColor: colors.primary }]}>
@@ -598,9 +642,13 @@ const styles = StyleSheet.create({
   hintBold: { fontFamily: fontFamilies.bodyBold, fontSize: 11, lineHeight: 17 },
   centerText: { textAlign: 'center' },
   empty: { padding: 20, gap: 14, borderRadius: 22, borderWidth: 1 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  place: { width: '46%', flexGrow: 1, gap: 7, padding: 6, borderRadius: 18, borderWidth: 1.5 },
-  placeImage: { width: '100%', aspectRatio: 1.44, borderRadius: 13 },
+  pickerContent: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 8, gap: 9 },
+  pickerFooter: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 5 },
+  grid: { gap: 8 },
+  gridRow: { flexDirection: 'row', gap: 8 },
+  place: { flex: 1, minWidth: 0, gap: 4, padding: 5, borderRadius: 18, borderWidth: 1.5 },
+  placeImage: { alignSelf: 'stretch', borderRadius: 12, overflow: 'hidden' },
+  posterImage: { width: '100%', height: '100%' },
   placeCheck: { position: 'absolute', top: 11, right: 11, width: 21, height: 21, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   placeCopy: { gap: 4, paddingHorizontal: 4, paddingBottom: 4, alignItems: 'flex-start' },
   placeName: { fontFamily: fontFamilies.bodyBold, fontSize: 15, lineHeight: 21 },
@@ -618,7 +666,7 @@ const styles = StyleSheet.create({
   counter: { flexDirection: 'row', gap: 4, alignItems: 'center', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 13 },
   chat: { padding: 16, gap: 12 },
   sceneCard: { padding: 8, gap: 6, borderWidth: 1, borderRadius: 21, borderCurve: 'continuous' },
-  sceneImage: { width: '100%', aspectRatio: 2.28, borderRadius: 15 },
+  sceneImage: { alignSelf: 'stretch', borderRadius: 15, overflow: 'hidden' },
   sceneCaption: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 5, gap: 9 },
   sceneTitle: { fontFamily: fontFamilies.bodyBold, fontSize: 13, lineHeight: 19, flex: 1 },
   sceneSetting: { paddingHorizontal: 5, paddingBottom: 1, fontSize: 11, lineHeight: 17 },

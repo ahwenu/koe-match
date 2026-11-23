@@ -176,6 +176,7 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
   const [selection, setSelection] = useState<EarSelection | null>(null);
   const [landed, setLanded] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [showCredits, setShowCredits] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [voiceText, setVoiceText] = useState('');
   const [voiceFeedback, setVoiceFeedback] = useState('');
@@ -183,6 +184,7 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
   const player = useAudioPlayer(null, { updateInterval: 120 });
   const playback = useAudioPlayerStatus(player);
   const nextClip = useRef<VoiceClip | null>(null);
+  const lastPlayedSide = useRef<Side | null>(null);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const voiceInput = useRef<ComponentRef<typeof TextInput>>(null);
   const lastVoiceRequest = useRef(voiceRequest);
@@ -205,9 +207,11 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
     try {
       player.replace(candidate.voices[side]);
       player.play();
+      lastPlayedSide.current = side;
       setCurrent(side);
       setError('');
     } catch {
+      lastPlayedSide.current = null;
       stop();
       setError(playbackError);
     }
@@ -248,6 +252,7 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
       return;
     }
     if (status.error) {
+      lastPlayedSide.current = null;
       stop();
       setError(playbackError);
       return;
@@ -303,6 +308,7 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
     const candidate = selection.side === 'left' ? left : right;
     if (!candidate) return;
     selectionLock.current = false;
+    lastPlayedSide.current = null;
     setLanded(false);
     setSelection(null);
     setShowTranscript(false);
@@ -338,7 +344,7 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
         advance();
       } else if (!selection && left && right) {
         stop();
-        play(current === 'left' ? { candidate: right, side: 'right' } : { candidate: left, side: 'left' });
+        play(lastPlayedSide.current === 'left' ? { candidate: right, side: 'right' } : { candidate: left, side: 'left' });
       }
       return;
     }
@@ -349,6 +355,7 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
 
   /** 最初の組み合わせから選び直す。 */
   function reset() {
+    lastPlayedSide.current = null;
     setPicks([]);
     setVoiceOpen(false);
     setVoiceFeedback('');
@@ -400,8 +407,8 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
               </View>
             </View>
             <View style={[styles.question, { backgroundColor: colors.surface2 }]}>
-              <Text style={[styles.hint, { color: colors.muted }]}>2人に同じ質問</Text>
-              <Text style={[styles.questionText, { color: colors.ink }]}>Q. 休みの日は、どう過ごしてる？</Text>
+              <Text style={[styles.hint, { color: colors.muted }]}>ASMRサンプル</Text>
+              <Text style={[styles.questionText, { color: colors.ink }]}>2人の話し方を聴きくらべ</Text>
             </View>
           </View>
 
@@ -513,7 +520,7 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
               onPress={() => setShowTranscript((shown) => !shown)}
               style={styles.textButton}
             >
-              <Text style={[styles.transcriptLink, { color: colors.blueText }]}>{showTranscript ? '文字を閉じる' : '自己紹介を文字で読む'}</Text>
+              <Text style={[styles.transcriptLink, { color: colors.blueText }]}>{showTranscript ? '文字を閉じる' : '台詞を文字で読む'}</Text>
             </Pressable>
             {showTranscript ? (
               <View style={[styles.transcript, { backgroundColor: colors.surface, borderColor: colors.line }]}>
@@ -522,6 +529,24 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
               </View>
             ) : null}
           </>
+        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showCredits }}
+          onPress={() => setShowCredits((shown) => !shown)}
+          style={styles.textButton}
+        >
+          <Text style={[styles.transcriptLink, { color: colors.blueText }]}>音声サンプルのクレジット</Text>
+        </Pressable>
+        {showCredits ? (
+          <View style={[styles.transcript, { backgroundColor: colors.surface, borderColor: colors.line }]}>
+            <Text style={[styles.transcriptText, { color: colors.ink }]}>Voice-matchingの合成ASMR音声</Text>
+            {voiceCandidates.map((candidate) => (
+              <Text key={candidate.id} selectable style={[styles.transcriptText, { color: colors.ink }]}>
+                {candidate.name}　{candidate.voiceCredit}
+              </Text>
+            ))}
+          </View>
         ) : null}
       </View>
     </ScrollView>

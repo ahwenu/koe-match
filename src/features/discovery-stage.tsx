@@ -124,7 +124,7 @@ function StagePerson({ candidate, side, playing, landed, disabled, lift, onListe
         </Text>
       </View>
       <Text style={[styles.personName, { color: colors.ink, textAlign: textAlignment }]}>{candidate.name}さん</Text>
-      <Text style={[styles.personMeta, { color: colors.muted, textAlign: textAlignment }]}>{candidate.age}歳 · {candidate.interests[0]}</Text>
+      <Text style={[styles.personMeta, { color: colors.muted, textAlign: textAlignment }]}>{candidate.speechStyle} · {candidate.interests[0]}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={playing ? `${candidate.name}の声を止める` : `${left ? '左' : '右'}から${candidate.name}の声を聴く`}
