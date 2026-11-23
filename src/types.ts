@@ -1,6 +1,4 @@
 /** アプリの各画面で共有する候補者と音声プロフィールの型。 */
-import type { ImageSourcePropType } from 'react-native';
-
 export type Candidate = {
   id: string;
   name: string;
@@ -10,7 +8,6 @@ export type Candidate = {
   interests: string[];
   color: string;
   initials: string;
-  avatar?: ImageSourcePropType;
 };
 
 export type VoiceEntry = {

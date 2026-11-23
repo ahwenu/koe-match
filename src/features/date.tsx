@@ -1,7 +1,7 @@
 /** 架空の候補との会話を通して、会う前のやり取りを練習する画面。 */
 
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Image, Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { colors } from '../theme';
 import type { Candidate } from '../types';
@@ -141,13 +141,9 @@ function DatePractice({ candidate, speak, active, generateReply }: Pick<DateScre
     >
       <ScreenIntro title="仮想デート" />
       <View style={styles.partner}>
-        {candidate.avatar
-          ? <Image source={candidate.avatar} style={styles.avatar} accessibilityIgnoresInvertColors />
-          : (
-            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: candidate.color }]}>
-              <Text style={styles.avatarInitials}>{candidate.initials}</Text>
-            </View>
-          )}
+        <View style={[styles.avatar, { backgroundColor: candidate.color }]}>
+          <Text style={styles.avatarInitials}>{candidate.initials}</Text>
+        </View>
         <View style={styles.partnerDetails}>
           <Text style={styles.partnerName}>{candidate.name}</Text>
           <Text style={styles.caption}>架空の候補との会話練習</Text>
@@ -262,8 +258,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 22, paddingTop: 20, paddingBottom: 32, gap: 16 },
   emptyCard: { padding: 20, gap: 16, borderRadius: 24, borderCurve: 'continuous', backgroundColor: colors.surface },
   partner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar: { width: 46, height: 46, borderRadius: 23 },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
   avatarInitials: { color: colors.ink, fontSize: 14, fontWeight: '800' },
   partnerDetails: { flex: 1, gap: 2 },
   partnerName: { color: colors.ink, fontSize: 16, fontWeight: '800' },

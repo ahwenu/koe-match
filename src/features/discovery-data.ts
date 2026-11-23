@@ -7,7 +7,6 @@ export type VoiceCandidate = Candidate & { voices: Record<Side, number> };
 export const voiceCandidates: readonly VoiceCandidate[] = [
   {
     id: 'mio',
-    avatar: require('../../assets/portraits/mio.jpg'),
     name: '澪',
     age: 27,
     tagline: '古本屋で、知らない物語を探す',
@@ -22,7 +21,6 @@ export const voiceCandidates: readonly VoiceCandidate[] = [
   },
   {
     id: 'rin',
-    avatar: require('../../assets/portraits/rin.jpg'),
     name: '凛',
     age: 26,
     tagline: '寄り道を、写真に残す',
@@ -37,7 +35,6 @@ export const voiceCandidates: readonly VoiceCandidate[] = [
   },
   {
     id: 'nagi',
-    avatar: require('../../assets/portraits/nagi.jpg'),
     name: '凪',
     age: 28,
     tagline: '海沿いを、日が落ちるまで歩く',
@@ -52,7 +49,6 @@ export const voiceCandidates: readonly VoiceCandidate[] = [
   },
   {
     id: 'sara',
-    avatar: require('../../assets/portraits/sara.jpg'),
     name: '紗良',
     age: 25,
     tagline: '季節のおやつを一緒に味わう',

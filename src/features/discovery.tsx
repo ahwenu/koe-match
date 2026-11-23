@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { useEventListener } from 'expo';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 import { colors } from '../theme';
 import type { Candidate } from '../types';
 import { ActionButton, ScreenIntro } from '../ui';
@@ -17,10 +17,56 @@ type VoiceClip = { candidate: VoiceCandidate; side: Side };
 type SwipeOrigin = { id: number; x: number; y: number; timestamp: number };
 
 const waveHeights = [6, 11, 17, 9, 21, 13, 7];
+const rightWaveHeights = [9, 18, 12, 24, 14, 21, 7];
 const sideLabel = { left: '左', right: '右' } as const;
+const channelColor = { left: colors.accentDark, right: '#285C54' } as const;
 const playbackError = '声を再生できませんでした。もう一度試すか、文字で読めます。';
 
-/** 候補の写真と試聴ボタンを、左右が分かる状態で表示する。 */
+/** 再生方向を示す装飾を、中央のマークと同じ段に表示する。 */
+function VoiceChannel({ side, playing }: { side: Side; playing: boolean }) {
+  const tint = channelColor[side];
+  const heights = side === 'left' ? waveHeights : rightWaveHeights;
+
+  return (
+    <View style={styles.channel}>
+      <View style={[
+        styles.channelBubble,
+        side === 'left' ? styles.leftChannel : styles.rightChannel,
+        playing && { backgroundColor: tint, borderColor: tint },
+      ]}>
+        <View style={styles.wave}>
+          {heights.map((height, index) => (
+            <View key={index} style={[styles.waveBar, { height, backgroundColor: playing ? colors.white : tint }]} />
+          ))}
+        </View>
+      </View>
+      <Text style={[styles.channelLabel, { color: tint }]}>{sideLabel[side]}の声</Text>
+    </View>
+  );
+}
+
+/** 丸い頭、首輪と上げた前足で、招き猫をかたどる。 */
+function ListeningCat() {
+  return (
+    <View style={styles.catBackdrop}>
+      <View style={styles.catBody} />
+      <View style={styles.catPaw} />
+      <View style={[styles.catEar, styles.catLeftEar]} />
+      <View style={[styles.catEar, styles.catRightEar]} />
+      <View style={styles.catHead}>
+        <View style={[styles.catEye, styles.catLeftEye]} />
+        <View style={[styles.catEye, styles.catRightEye]} />
+        <View style={styles.catNose} />
+        <View style={[styles.catCheek, styles.catLeftCheek]} />
+        <View style={[styles.catCheek, styles.catRightCheek]} />
+      </View>
+      <View style={styles.catCollar} />
+      <View style={styles.catBell} />
+    </View>
+  );
+}
+
+/** 候補の情報と試聴ボタンを、左右が分かる状態で表示する。 */
 function CandidateCard({
   candidate,
   side,
@@ -32,35 +78,30 @@ function CandidateCard({
   playing: boolean;
   onListen: () => void;
 }) {
+  const tint = channelColor[side];
   return (
-    <View style={[styles.card, playing && styles.activeCard]}>
-      <View style={[styles.portrait, { backgroundColor: candidate.color }]}>
-        {candidate.avatar ? (
-          <Image source={candidate.avatar} style={styles.portraitImage} accessibilityIgnoresInvertColors />
-        ) : (
-          <Text style={styles.initials} accessibilityElementsHidden>{candidate.initials}</Text>
-        )}
-        <View style={styles.sideTag}>
-          <Text style={styles.sideTagText}>{sideLabel[side]}</Text>
+    <View style={[styles.card, playing && { borderColor: tint }]}>
+      <View style={styles.candidateHeader}>
+        <View style={[styles.initialsBadge, { backgroundColor: candidate.color }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Text style={styles.initials}>{candidate.initials}</Text>
         </View>
-      </View>
-      <View style={styles.cardBody}>
         <Text style={styles.name}>{candidate.name} <Text style={styles.age}>{candidate.age}歳</Text></Text>
-        <Text style={styles.tagline}>{candidate.tagline}</Text>
-        <Pressable
-          accessibilityLabel={playing ? `${candidate.name}の声を止める` : `${sideLabel[side]}から${candidate.name}の声を聴く`}
-          accessibilityRole="button"
-          onPress={onListen}
-          style={({ pressed }) => [
-            styles.listen,
-            playing && styles.listenActive,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={[styles.listenIcon, playing && styles.listenTextActive]}>{playing ? 'Ⅱ' : '▶'}</Text>
-          <Text style={[styles.listenText, playing && styles.listenTextActive]}>{playing ? '再生中' : '声を聴く'}</Text>
-        </Pressable>
       </View>
+      <Text style={styles.tagline}>{candidate.tagline}</Text>
+      <Pressable
+        accessibilityLabel={playing ? `${candidate.name}の声を止める` : `${sideLabel[side]}から${candidate.name}の声を聴く`}
+        accessibilityRole="button"
+        onPress={onListen}
+        style={({ pressed }) => [
+          styles.listen,
+          side === 'left' ? styles.leftChannel : styles.rightChannel,
+          playing && { backgroundColor: tint },
+          pressed && styles.pressed,
+        ]}
+      >
+        <Text style={[styles.listenIcon, { color: playing ? colors.white : tint }]}>{playing ? 'Ⅱ' : '▶'}</Text>
+        <Text style={[styles.listenText, { color: playing ? colors.white : tint }]}>{playing ? '再生中' : '声を聴く'}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -165,7 +206,7 @@ export default function DiscoveryScreen({ active = true, onMatch }: DiscoveryPro
     swipeOrigin.current = null;
     if (!origin) return;
 
-    const touch = nativeEvent.changedTouches.find(({ identifier }) => identifier === origin.id);
+    const touch = Array.from(nativeEvent.changedTouches).find(({ identifier }) => identifier === origin.id);
     if (!touch) return;
 
     const dx = touch.pageX - origin.x;
@@ -186,13 +227,9 @@ export default function DiscoveryScreen({ active = true, onMatch }: DiscoveryPro
           subtitle="気になった相手のAI分身と、短い仮想デートを体験できます。"
         />
         <View style={styles.resultCard}>
-          {winner.avatar ? (
-            <Image source={winner.avatar} style={styles.resultAvatar} accessibilityIgnoresInvertColors />
-          ) : (
-            <View style={[styles.resultAvatar, styles.resultInitials, { backgroundColor: winner.color }]}>
-              <Text style={styles.initials}>{winner.initials}</Text>
-            </View>
-          )}
+          <View style={[styles.resultInitials, { backgroundColor: winner.color }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Text style={styles.resultInitial}>{winner.initials}</Text>
+          </View>
           <View style={styles.resultText}>
             <Text style={styles.resultName}>{winner.name} <Text style={styles.age}>{winner.age}歳</Text></Text>
             <Text style={styles.tagline}>{winner.tagline}</Text>
@@ -230,13 +267,20 @@ export default function DiscoveryScreen({ active = true, onMatch }: DiscoveryPro
         </View>
       </View>
       <View
-        style={styles.row}
+        style={styles.comparison}
         onTouchStart={startSwipe}
         onTouchEnd={finishSwipe}
         onTouchCancel={() => { swipeOrigin.current = null; }}
       >
-        <CandidateCard candidate={left} side="left" playing={current === 'left'} onListen={() => listen(left, 'left')} />
-        <CandidateCard candidate={right} side="right" playing={current === 'right'} onListen={() => listen(right, 'right')} />
+        <View style={styles.soundStage} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <VoiceChannel side="left" playing={current === 'left'} />
+          <ListeningCat />
+          <VoiceChannel side="right" playing={current === 'right'} />
+        </View>
+        <View style={styles.row}>
+          <CandidateCard candidate={left} side="left" playing={current === 'left'} onListen={() => listen(left, 'left')} />
+          <CandidateCard candidate={right} side="right" playing={current === 'right'} onListen={() => listen(right, 'right')} />
+        </View>
       </View>
       <Pressable
         accessibilityRole="button"
@@ -265,7 +309,7 @@ export default function DiscoveryScreen({ active = true, onMatch }: DiscoveryPro
           <ActionButton label={`${right.name}を選ぶ →`} onPress={() => choose('right')} variant="secondary" />
         </View>
       </View>
-      <Text style={styles.guide}>写真の上で、選びたい側にスワイプしても進めます。</Text>
+      <Text style={styles.guide}>聞き比べのエリアを、選びたい側にスワイプしても進めます。</Text>
       <Text style={styles.guide}>イヤホンを使うと左右の違いが分かりやすくなります。</Text>
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       <Pressable
@@ -294,23 +338,40 @@ const styles = StyleSheet.create({
   progress: { flexDirection: 'row', gap: 5 },
   progressItem: { width: 17, height: 4, borderRadius: 3, backgroundColor: colors.line },
   progressCurrent: { backgroundColor: colors.accent },
+  comparison: { gap: 10 },
+  soundStage: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 26, backgroundColor: '#F4EDE6', borderWidth: 1, borderColor: '#EBDFD6' },
+  channel: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6 },
+  channelBubble: { minHeight: 42, width: '100%', maxWidth: 84, borderRadius: 21, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
+  channelLabel: { fontWeight: '700', fontSize: 12, textAlign: 'center' },
+  leftChannel: { backgroundColor: colors.lilac },
+  rightChannel: { backgroundColor: '#DCECE5' },
+  catBackdrop: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#EBD6C5', alignItems: 'center' },
+  catBody: { position: 'absolute', top: 48, left: 23, width: 45, height: 34, borderRadius: 19, backgroundColor: colors.surface },
+  catPaw: { position: 'absolute', top: 44, left: 62, width: 15, height: 25, borderRadius: 8, backgroundColor: colors.surface, transform: [{ rotate: '15deg' }] },
+  catEar: { position: 'absolute', top: 18, width: 18, height: 18, borderRadius: 4, backgroundColor: colors.surface, transform: [{ rotate: '45deg' }] },
+  catLeftEar: { left: 20 },
+  catRightEar: { right: 20 },
+  catHead: { position: 'absolute', top: 25, width: 55, height: 36, borderRadius: 20, backgroundColor: colors.surface },
+  catEye: { position: 'absolute', top: 12, width: 4, height: 5, borderRadius: 3, backgroundColor: colors.accentDark },
+  catLeftEye: { left: 16 },
+  catRightEye: { right: 16 },
+  catNose: { position: 'absolute', top: 19, left: 25, width: 5, height: 4, borderRadius: 3, backgroundColor: '#A85C60' },
+  catCheek: { position: 'absolute', top: 20, width: 7, height: 4, borderRadius: 3, backgroundColor: '#F0C3BB' },
+  catLeftCheek: { left: 9 },
+  catRightCheek: { right: 9 },
+  catCollar: { position: 'absolute', top: 61, width: 31, height: 5, borderRadius: 3, backgroundColor: '#A85C60' },
+  catBell: { position: 'absolute', top: 64, width: 10, height: 10, borderRadius: 5, backgroundColor: '#D39D4F' },
   row: { flexDirection: 'row', gap: 10 },
-  card: { flex: 1, minWidth: 0, borderWidth: 1, borderColor: colors.line, borderRadius: 20, overflow: 'hidden', backgroundColor: colors.surface },
-  activeCard: { borderColor: colors.accentDark },
-  portrait: { aspectRatio: 1.28, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  portraitImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  initials: { fontSize: 48, color: colors.ink, fontWeight: '600', opacity: 0.84 },
-  sideTag: { position: 'absolute', left: 9, top: 9, borderRadius: 16, backgroundColor: colors.surface, minWidth: 29, height: 27, alignItems: 'center', justifyContent: 'center' },
-  sideTagText: { fontWeight: '700', color: colors.ink, fontSize: 12 },
-  cardBody: { paddingVertical: 10, paddingHorizontal: 10, gap: 6, flex: 1 },
-  name: { fontWeight: '700', color: colors.ink, fontSize: 20 },
+  card: { flex: 1, minWidth: 0, padding: 10, gap: 7, borderWidth: 1, borderColor: colors.line, borderRadius: 22, backgroundColor: colors.surface },
+  candidateHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  initialsBadge: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  initials: { fontSize: 13, color: colors.ink, fontWeight: '700' },
+  name: { flex: 1, fontWeight: '700', color: colors.ink, fontSize: 17 },
   age: { color: colors.muted, fontWeight: '500', fontSize: 12 },
   tagline: { color: colors.muted, fontSize: 12, lineHeight: 18, flexGrow: 1 },
-  listen: { marginTop: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', columnGap: 7, minHeight: 44, paddingHorizontal: 4, borderRadius: 12, backgroundColor: colors.lilac },
-  listenActive: { backgroundColor: colors.accentDark },
-  listenIcon: { fontSize: 11, color: colors.accentDark },
-  listenText: { fontSize: 13, color: colors.accentDark, fontWeight: '700' },
-  listenTextActive: { color: colors.white },
+  listen: { marginTop: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', columnGap: 7, minHeight: 44, paddingHorizontal: 4, borderRadius: 22 },
+  listenIcon: { fontSize: 11 },
+  listenText: { fontSize: 13, fontWeight: '700' },
   pressed: { opacity: 0.72 },
   compareButton: { paddingHorizontal: 12, minHeight: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', gap: 9, flexDirection: 'row', backgroundColor: colors.peach },
   compareText: { fontWeight: '700', color: colors.ink, fontSize: 13 },
@@ -325,8 +386,8 @@ const styles = StyleSheet.create({
   chooseRow: { flexDirection: 'row', gap: 8 },
   chooseCell: { flex: 1, minWidth: 0 },
   resultCard: { padding: 13, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 15 },
-  resultAvatar: { width: 82, height: 102, borderRadius: 15, resizeMode: 'cover' },
-  resultInitials: { alignItems: 'center', justifyContent: 'center' },
+  resultInitials: { width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center' },
+  resultInitial: { fontSize: 28, color: colors.ink, fontWeight: '700' },
   resultText: { minWidth: 0, flex: 1, gap: 5 },
   resultName: { color: colors.ink, fontSize: 23, fontWeight: '700' },
   resultInterests: { color: colors.accentDark, fontSize: 12, fontWeight: '600' },
