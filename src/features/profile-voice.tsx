@@ -4,14 +4,17 @@ import {
   RecordingPresets,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus,
   useAudioRecorder,
   useAudioRecorderState,
 } from 'expo-audio';
 import { File } from 'expo-file-system';
+import * as Speech from 'expo-speech';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '../theme';
+import { fontFamilies, type ThemeColors, useThemeColors } from '../theme';
 import { ActionButton } from '../ui';
 
 export type ProfileVoiceApi = {
@@ -27,6 +30,8 @@ type Sample = { uri: string; seconds: number };
 const minSeconds = 30;
 const maxSeconds = 120;
 const recordingOptions = { ...RecordingPresets.HIGH_QUALITY, numberOfChannels: 1 };
+const practiceOptions = { ...recordingOptions, isMeteringEnabled: true };
+export const practiceSeconds = 30;
 
 /** Deletes an app-created cache file without blocking the voice workflow. */
 function deleteSample(uri: string | null) {
@@ -54,6 +59,176 @@ function restorePlayback() {
   return setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
 }
 
+/** プロフィール入力画面だけで、送信も保存もしない短い練習録音を扱う。 */
+export function usePracticeRecording() {
+  const supported = Platform.OS === 'ios';
+  const [phase, setPhase] = useState<'idle' | 'starting' | 'recording' | 'stopping'>('idle');
+  const [sample, setSample] = useState<Sample | null>(null);
+  const [message, setMessage] = useState('');
+  const mounted = useRef(false);
+  const currentPhase = useRef(phase);
+  const currentSample = useRef<Sample | null>(null);
+  const captureUri = useRef<string | null>(null);
+  const startedAt = useRef(0);
+  const player = useAudioPlayer(null);
+  const playerStatus = useAudioPlayerStatus(player);
+
+  /** 録音操作を直列化し、画面を離れた後の状態更新を避ける。 */
+  function changePhase(next: typeof phase) {
+    currentPhase.current = next;
+    if (mounted.current) setPhase(next);
+  }
+
+  /** 使用できる練習音声だけを現在の画面に残す。 */
+  async function finish(uri: string | null, seconds: number) {
+    const pendingUri = captureUri.current;
+    captureUri.current = null;
+    changePhase('stopping');
+    await restorePlayback();
+    if (mounted.current && uri && hasSample(uri)) {
+      currentSample.current = { uri, seconds };
+      setSample(currentSample.current);
+    } else {
+      deleteSample(uri ?? pendingUri);
+      if (mounted.current) setMessage('録音を読み込めませんでした。もう一度お試しください。');
+    }
+    changePhase('idle');
+  }
+
+  const recorder = useAudioRecorder(practiceOptions, (event) => {
+    if (!event.isFinished || currentPhase.current !== 'recording') return;
+    const seconds = Math.round((performance.now() - startedAt.current) / 1000);
+    void finish(event.hasError ? null : event.url, Math.min(practiceSeconds, seconds));
+  });
+  const recorderState = useAudioRecorderState(recorder, 125);
+
+  useEffect(() => {
+    mounted.current = true;
+
+    /** バックグラウンドでのキャプチャを止めて一時ファイルを削除する。 */
+    function interrupt() {
+      if (currentPhase.current !== 'recording') return;
+      currentPhase.current = 'stopping';
+      const uri = captureUri.current;
+      captureUri.current = null;
+      if (mounted.current) {
+        setPhase('stopping');
+        setMessage('画面を離れたため、録音を中断しました。');
+      }
+      void (async () => {
+        try {
+          await recorder.stop();
+        } catch {
+          // 画面を離れるとネイティブ録音機が先に解放されることがある。
+        } finally {
+          deleteSample(uri);
+          await restorePlayback();
+          currentPhase.current = 'idle';
+          if (mounted.current) setPhase('idle');
+        }
+      })();
+    }
+
+    const background = AppState.addEventListener('change', (state) => {
+      if (state === 'background') interrupt();
+    });
+
+    return () => {
+      mounted.current = false;
+      background.remove();
+      interrupt();
+      deleteSample(currentSample.current?.uri ?? null);
+      currentSample.current = null;
+    };
+  }, [recorder]);
+
+  /** 現在の一時録音と試聴中のプレーヤーを初期化する。 */
+  function clear() {
+    player.pause();
+    player.replace(null);
+    deleteSample(currentSample.current?.uri ?? null);
+    currentSample.current = null;
+    setSample(null);
+    setMessage('');
+  }
+
+  /** マイクの許可を取ってから30秒を上限に録音する。 */
+  async function start() {
+    if (!supported || currentPhase.current !== 'idle') return;
+    clear();
+    changePhase('starting');
+    let started = false;
+
+    try {
+      const { granted } = await requestRecordingPermissionsAsync();
+      if (!mounted.current || AppState.currentState === 'background') return;
+      if (!granted) {
+        setMessage('録音するには設定でマイクを許可してください。');
+        return;
+      }
+      await Speech.stop().catch(() => {});
+      if (!mounted.current || AppState.currentState === 'background') return;
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      if (!mounted.current || AppState.currentState === 'background') return;
+      await recorder.prepareToRecordAsync();
+      captureUri.current = recorder.uri;
+      if (!mounted.current || AppState.currentState === 'background') return;
+
+      startedAt.current = performance.now();
+      changePhase('recording');
+      recorder.record({ forDuration: practiceSeconds });
+      started = true;
+    } catch {
+      if (mounted.current) setMessage('録音を開始できませんでした。もう一度お試しください。');
+    } finally {
+      if (!started) {
+        deleteSample(captureUri.current);
+        captureUri.current = null;
+        await restorePlayback();
+        changePhase('idle');
+      }
+    }
+  }
+
+  /** 途中で停止した音声を、この画面で試聴できるようにする。 */
+  async function stop() {
+    if (currentPhase.current !== 'recording') return;
+    changePhase('stopping');
+    let uri: string | null = null;
+    const seconds = Math.floor((performance.now() - startedAt.current) / 1000);
+    try {
+      await recorder.stop();
+      uri = recorder.uri;
+    } catch {
+      // 読み込めない録音の削除と再試行は finish が扱う。
+    }
+    await finish(uri, seconds);
+  }
+
+  /** 一時録音の試聴を開始するか、進行中なら停止する。 */
+  function togglePlayback() {
+    if (!sample) return;
+    try {
+      if (playerStatus.playing) player.pause();
+      else {
+        player.replace(sample.uri);
+        player.play();
+      }
+    } catch {
+      setMessage('録音を試聴できませんでした。');
+    }
+  }
+
+  return {
+    supported, phase, sample, message, start, stop, clear, togglePlayback,
+    playing: playerStatus.playing,
+    seconds: Math.min(practiceSeconds, phase === 'recording'
+      ? Math.floor(recorderState.durationMillis / 1000)
+      : sample?.seconds ?? 0),
+    metering: recorderState.metering,
+  };
+}
+
 /** An accessible confirmation for voice ownership or sending a sample. */
 function VoiceConfirmation({ checked, label, onPress, disabled }: {
   checked: boolean;
@@ -61,6 +236,7 @@ function VoiceConfirmation({ checked, label, onPress, disabled }: {
   onPress: () => void;
   disabled: boolean;
 }) {
+  const styles = createStyles(useThemeColors());
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -79,6 +255,7 @@ function VoiceConfirmation({ checked, label, onPress, disabled }: {
 
 /** The iOS controls are mounted only while the profile tab is active. */
 export function ProfileVoice({ api, introduction }: { api: ProfileVoiceApi; introduction: string }) {
+  const styles = createStyles(useThemeColors());
   const [ownsVoice, setOwnsVoice] = useState(false);
   const [allowsUpload, setAllowsUpload] = useState(false);
   const [sample, setSample] = useState<Sample | null>(null);
@@ -365,30 +542,33 @@ export function ProfileVoice({ api, introduction }: { api: ProfileVoiceApi; intr
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    padding: 18,
-    gap: 12,
-    backgroundColor: colors.surface,
-    borderColor: colors.line,
-    borderWidth: 1,
-    borderRadius: 24,
-    borderCurve: 'continuous',
-  },
-  title: { color: colors.ink, fontSize: 19, fontWeight: '700' },
-  hint: { color: colors.muted, fontSize: 13, lineHeight: 20 },
-  timer: { color: colors.accentDark, fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  confirmation: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
-  confirmationText: { flex: 1, color: colors.ink, fontSize: 14, lineHeight: 21 },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderColor: colors.accent,
-    borderWidth: 1,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: { backgroundColor: colors.accent },
-  checkmark: { color: colors.white, fontSize: 17, fontWeight: '700' },
-});
+/** 登録済みの声の設定にも、表示中のテーマを適用する。 */
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      padding: 18,
+      gap: 12,
+      backgroundColor: colors.surface,
+      borderColor: colors.line,
+      borderWidth: 1,
+      borderRadius: 24,
+      borderCurve: 'continuous',
+    },
+    title: { color: colors.ink, fontFamily: fontFamilies.bodyBold, fontSize: 19 },
+    hint: { color: colors.muted, fontFamily: fontFamilies.body, fontSize: 13, lineHeight: 20 },
+    timer: { color: colors.accentDark, fontFamily: fontFamilies.numbers, fontSize: 15, fontVariant: ['tabular-nums'] },
+    confirmation: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
+    confirmationText: { flex: 1, color: colors.ink, fontFamily: fontFamilies.body, fontSize: 14, lineHeight: 21 },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderColor: colors.primary,
+      borderWidth: 1,
+      borderRadius: 7,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkboxChecked: { backgroundColor: colors.primary },
+    checkmark: { color: colors.onPrimary, fontSize: 17, fontWeight: '700' },
+  });
+}

@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Koe Match Onboarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Shippori+Mincho+B1:wght@700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Tokens (light is the default) ---------- */
+  :root {
+    --page: #E9E7E4;
+    --bg: #F7F6F4;
+    --text: #1B171C;
+    --text-2: #6D6670;
+    --left: #6E5BB5;
+    --right: #B8662A;
+    --blend: multiply;
+    --ctl-bg: rgba(27, 23, 28, 0.06);
+    --ctl-on: #1B171C;
+    --ctl-on-text: #F7F6F4;
+    --font-display: "Shippori Mincho B1", "Hiragino Mincho ProN", serif;
+    --font-body: "Zen Kaku Gothic New", "Hiragino Sans", system-ui, sans-serif;
+    --font-mono: "DM Mono", ui-monospace, Menlo, monospace;
+    --font-system: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page: #0B0A0C; --bg: #131114; --text: #F3EEE8; --text-2: #A49DA7;
+      --left: #B9A9E4; --right: #E7A96C; --blend: screen;
+      --ctl-bg: rgba(243, 238, 232, 0.08); --ctl-on: #F3EEE8; --ctl-on-text: #131114;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --page: #0B0A0C; --bg: #131114; --text: #F3EEE8; --text-2: #A49DA7;
+    --left: #B9A9E4; --right: #E7A96C; --blend: screen;
+    --ctl-bg: rgba(243, 238, 232, 0.08); --ctl-on: #F3EEE8; --ctl-on-text: #131114;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--page);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 24px; padding: 40px 16px;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Phone screen (390x844) ---------- */
+  .screen {
+    position: relative; flex: none;
+    width: 390px; height: 844px;
+    background: var(--bg); color: var(--text);
+    border-radius: 48px; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .status {
+    height: 62px; padding: 0 28px 0 36px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .status .time { font-family: var(--font-system); font-size: 17px; font-weight: 600; letter-spacing: -0.2px; }
+  .status .ind { display: flex; gap: 6px; align-items: center; }
+  .ico { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  .content { padding: 8px 28px 32px; display: flex; flex-direction: column; gap: 28px; }
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .wordmark { font-family: var(--font-display); font-weight: 700; font-size: 20px; }
+  .login { font-size: 13px; font-weight: 500; color: var(--text-2); }
+
+  .hero { position: relative; width: 334px; height: 300px; isolation: isolate; }
+  .print {
+    position: absolute; width: 230px; height: 230px;
+    mix-blend-mode: var(--blend);
+    transform-origin: 115px 115px;
+    will-change: transform, opacity;
+  }
+  .print svg { display: block; width: 230px; height: 230px; overflow: visible; }
+  .print.left  { left: 0;   top: 10px; color: var(--left); }
+  .print.right { left: 104px; top: 60px; color: var(--right); }
+  .print line { stroke: currentColor; stroke-width: 2.5555555555555554; stroke-linecap: round; }
+
+  .copy { display: flex; flex-direction: column; gap: 14px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; color: var(--text-2); line-height: 1.3; }
+  .headline { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 36px; line-height: 1.45; }
+  .body { margin: 0; font-size: 15px; line-height: 1.8; color: var(--text-2); }
+
+  .actions { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .btn {
+    width: 100%; height: 56px; border: 0; border-radius: 28px;
+    background: var(--text); color: var(--bg);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-family: var(--font-body); font-size: 16px; font-weight: 700; cursor: pointer;
+  }
+  .hint { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
+  .hint .ico { width: 14px; height: 14px; }
+
+  .reveal { will-change: transform, opacity; }
+
+  /* ---------- Controls (outside the screen) ---------- */
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; font-family: var(--font-mono); }
+  .controls button {
+    font: 500 12px/1 var(--font-mono); letter-spacing: 0.5px;
+    color: var(--text); background: var(--ctl-bg);
+    border: 0; border-radius: 999px; padding: 10px 16px; cursor: pointer;
+  }
+  .controls button:hover { filter: brightness(0.96); }
+  .seg { display: inline-flex; background: var(--ctl-bg); border-radius: 999px; padding: 3px; }
+  .seg button { background: transparent; padding: 7px 12px; }
+  .seg button[aria-pressed="true"] { background: var(--ctl-on); color: var(--ctl-on-text); }
+  .controls .readout { align-self: center; font-size: 11px; color: var(--text); opacity: 0.55; min-width: 64px; text-align: center; }
+
+  @media (max-width: 430px) {
+    body { padding: 16px; }
+  }
+
+  /* ---------- ?embed=1 : only the 390x844 screen ---------- */
+  html.embed, html.embed body { width: 390px; height: 844px; overflow: hidden; }
+  html.embed body { padding: 0; min-height: 0; display: block; background: var(--bg); }
+  html.embed .screen { border-radius: 0; box-shadow: none; }
+  html.embed .controls { display: none; }
+</style>
+</head>
+<body>
+
+<div class="screen" id="screen" aria-label="01 はじめに">
+  <div class="status">
+    <span class="time">9:41</span>
+    <span class="ind" aria-hidden="true">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 4v16"/></svg>
+      <svg class="ico" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>
+      <svg class="ico" viewBox="0 0 24 24"><rect width="16" height="10" x="2" y="7" rx="2" ry="2"/><line x1="22" x2="22" y1="11" y2="13"/><line x1="6" x2="6" y1="11" y2="13"/><line x1="10" x2="10" y1="11" y2="13"/><line x1="14" x2="14" y1="11" y2="13"/></svg>
+    </span>
+  </div>
+
+  <div class="content">
+    <div class="top">
+      <span class="wordmark">Koe Match</span>
+      <span class="login">ログイン</span>
+    </div>
+
+    <div class="hero" id="hero" aria-hidden="true">
+      <div class="print left" id="printL"><svg viewBox="0 0 230 230"></svg></div>
+      <div class="print right" id="printR"><svg viewBox="0 0 230 230"></svg></div>
+    </div>
+
+    <div class="copy">
+      <div class="eyebrow reveal">VOICE FIRST MATCHING</div>
+      <h1 class="headline reveal">見た目より、<br>声と言葉で。</h1>
+      <p class="body reveal">写真も、年収や肩書きの欄もありません。<br>話すだけで、あなたらしさが伝わります。</p>
+    </div>
+
+    <div class="actions">
+      <button class="btn reveal" type="button">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+        話して始める
+      </button>
+      <div class="hint reveal">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
+        「はじめたい」と話しかけても進めます
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="controls" id="controls">
+  <button type="button" id="replay">Replay</button>
+  <span class="seg" role="group" aria-label="Speed">
+    <button type="button" data-speed="1" aria-pressed="true">1×</button>
+    <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
+  </span>
+  <button type="button" id="theme">Dark</button>
+  <span class="readout" id="readout">0 ms</span>
+</div>
+
+<script>
+/* =====================================================================
+   MOTION — every timing value lives here so it can be ported 1:1 to
+   React Native Reanimated (withTiming / Easing.bezier / useFrameCallback).
+   All times are milliseconds on the timeline (t = 0 at mount).
+   ===================================================================== */
+const MOTION = {
+  // Phase 1 — appear: both prints fade + scale in, far apart, each "talking".
+  appear:   { start: 0,    duration: 500,  fromOpacity: 0, fromScale: 0.92,
+              easing: [0.22, 1, 0.36, 1] },               // ease-out
+  // Phase 2 — approach: drift to final spots on a curved path, counter-rotate,
+  // and converge rhythm (frequency, phase, loudness) to one shared rhythm.
+  approach: { start: 500,  duration: 1800, easing: [0.65, 0, 0.35, 1] },
+  // Phase 3 — match: one shared "sync pulse" (scale 1 -> 1.05 -> 1, no overshoot).
+  match:    { start: 2300, duration: 600,  peakScale: 1.05,
+              riseFraction: 0.35,                            // 35% rising, 65% settling
+              hapticPx: 1.2, hapticMs: 150 },                // tiny visual jolt on the hero (no sound)
+  // Phase 4 — copy stagger: eyebrow, headline, body, button, hint.
+  copy:     { start: 1800, duration: 400, stagger: 80, fromY: 8,
+              easing: [0.22, 1, 0.36, 1] },                  // ease-out
+  // Phase 5 — idle loop (starts after the intro).
+  idle:     { start: 3400, breathAmp: 0.08,   // bar length ±8%
+              ringBreathAmp: 0.012,           // ring scale ±1.2% (same rhythm)
+              breathPeriod: 2400,
+              breathRampIn: 1200,             // fade the breath in, no kink at start
+              rotationPeriod: 90000 },        // 360° per 90 s, shared direction
+  // Start offsets relative to the final position (px), path bulge (px) and start rotation (deg).
+  left:  { from: [-70, -30], bulge:  22, rotate:  12 },
+  right: { from: [ 80,  90], bulge: -22, rotate: -12 },
+  // Voice rhythm: bar length = amp * v * loud * ((1-depth) + depth*sin(phase + i*k)).
+  voice: {
+    left:   { omega: 5.6, k: 0.42, phase: 0 },              // rad/s, rad per bar, rad
+    right:  { omega: 3.4, k: 0.26, phase: Math.PI / 2 },
+    shared: { omega: 4.2, k: 0.33 },                         // both converge to this
+    depthTalk: 0.25,           // modulation depth while talking (0.75 + 0.25 sin)
+    depthIdle: 0.05,           // calmer depth once matched
+    depthSettle: [2300, 3400], // depth eases from talk -> idle over this window
+    turnPeriod: 1300,          // conversation turn-taking: left loud <-> right loud
+    turnDip: 0.4,              // quiet voice drops to 60% loudness
+    growFrom: 0.4,             // bars grow from 40% length during appear
+  },
+  reducedMotionFade: 600,      // prefers-reduced-motion: final state, opacity fade only
+  embedLoop: 7000,             // ?embed=1 replays every 7 s
+};
+
+/* Voiceprint geometry (matches design/koe-match.pen exactly). */
+const GEO = { S: 230, N: 96, r0: 0.3 * 230, amp: 0.17 * 230 };
+
+/* ---------- helpers ---------- */
+const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
+const lerp = (a, b, t) => a + (b - a) * t;
+function bezier(x1, y1, x2, y2) {
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+  const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+  const sx = t => ((ax * t + bx) * t + cx) * t;
+  const sy = t => ((ay * t + by) * t + cy) * t;
+  const dx = t => (3 * ax * t + 2 * bx) * t + cx;
+  return x => {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    let t = x;
+    for (let i = 0; i < 8; i++) { const e = sx(t) - x, d = dx(t); if (Math.abs(e) < 1e-6 || Math.abs(d) < 1e-6) break; t -= e / d; }
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 20 && Math.abs(sx(t) - x) > 1e-6; i++) { if (sx(t) < x) lo = t; else hi = t; t = (lo + hi) / 2; }
+    return sy(t);
+  };
+}
+const easeAppear = bezier(...MOTION.appear.easing);
+const easeApproach = bezier(...MOTION.approach.easing);
+const easeCopy = bezier(...MOTION.copy.easing);
+const easeInOut = bezier(0.65, 0, 0.35, 1);
+const easeOut = bezier(0.22, 1, 0.36, 1);
+const wrapPi = a => { a = (a + Math.PI) % (2 * Math.PI); if (a < 0) a += 2 * Math.PI; return a - Math.PI; };
+
+/* Rhythm convergence c(t) in 0..1, follows the approach easing. */
+const conv = t => easeApproach(clamp01((t - MOTION.approach.start) / MOTION.approach.duration));
+
+/* ---------- build the bars ---------- */
+function buildPrint(el, seed) {
+  const svg = el.querySelector('svg');
+  const { S, N, r0 } = GEO, c = S / 2;
+  const bars = [];
+  for (let i = 0; i < N; i++) {
+    const a = i / N * Math.PI * 2;
+    const v = Math.abs(Math.sin(i * 0.37 + seed) * Math.cos(i * 0.11 + seed * 1.7)) * 0.85 + 0.15;
+    const cos = Math.cos(a), sin = Math.sin(a);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', (c + r0 * cos).toFixed(2));
+    line.setAttribute('y1', (c + r0 * sin).toFixed(2));
+    svg.appendChild(line);
+    bars.push({ line, v, cos, sin });
+  }
+  return bars;
+}
+const elL = document.getElementById('printL'), elR = document.getElementById('printR');
+const barsL = buildPrint(elL, 1.3), barsR = buildPrint(elR, 4.1);
+
+/* ---------- phase integration (deterministic, so ?t= frames are exact) ----------
+   omega(t) = lerp(omega_voice, omega_shared, c(t)); phase(t) = ∫omega dt.
+   After the approach, both voices are pulled onto the identical shared phase
+   by subtracting the (wrapped) residual D * c(t). */
+const STEP = 4, T_END = MOTION.approach.start + MOTION.approach.duration;
+function makePhase(vp) {
+  const n = Math.ceil(T_END / STEP) + 1, table = new Float64Array(n);
+  const { omega: ws } = MOTION.voice.shared;
+  for (let j = 1; j < n; j++) {
+    const tm = (j - 0.5) * STEP;
+    table[j] = table[j - 1] + lerp(vp.omega, ws, conv(tm)) * STEP / 1000;
+  }
+  const endInt = table[n - 1], endT = (n - 1) * STEP;
+  const D = wrapPi(endInt + vp.phase - ws * endT / 1000);
+  return t => {
+    let integ;
+    if (t >= endT) integ = endInt + ws * (t - endT) / 1000;
+    else { const f = t / STEP, j = Math.floor(f); integ = lerp(table[j], table[j + 1], f - j); }
+    const c = conv(t);
+    // at c=1: integ + phase - D == ws * t  (mod 2π) for both voices -> in sync
+    return integ + vp.phase - D * c;
+  };
+}
+const phaseL = makePhase(MOTION.voice.left), phaseR = makePhase(MOTION.voice.right);
+
+/* ---------- state ---------- */
+const params = new URLSearchParams(location.search);
+const EMBED = params.get('embed') === '1';
+const FREEZE = params.has('t') ? Math.max(0, parseFloat(params.get('t')) || 0) : null;
+if (EMBED) document.documentElement.classList.add('embed');
+if (params.get('theme') === 'dark' || params.get('theme') === 'light') document.documentElement.dataset.theme = params.get('theme');
+const reduceMQ = matchMedia('(prefers-reduced-motion: reduce)');
+let reduced = reduceMQ.matches || params.get('reduced') === '1';
+
+let speed = 1, tl = 0, last = null, hapticFired = false;
+const hero = document.getElementById('hero');
+const reveals = [...document.querySelectorAll('.reveal')];
+const readout = document.getElementById('readout');
+
+/* ---------- render one frame at timeline time t ---------- */
+function drawBars(bars, phase, k, loud, depth, grow, breath) {
+  const { S, r0, amp } = GEO, c = S / 2;
+  for (let i = 0; i < bars.length; i++) {
+    const b = bars[i];
+    const m = (1 - depth) + depth * Math.sin(phase + i * k);
+    const r = r0 + amp * b.v * loud * m * grow * (1 + breath);
+    b.line.setAttribute('x2', (c + r * b.cos).toFixed(2));
+    b.line.setAttribute('y2', (c + r * b.sin).toFixed(2));
+  }
+}
+
+function render(t) {
+  const M = MOTION, V = M.voice;
+
+  if (reduced) {
+    // Final layout, exact design geometry; only a gentle opacity fade.
+    const o = clamp01(t / M.reducedMotionFade);
+    for (const el of [elL, elR]) { el.style.opacity = o; el.style.transform = 'none'; }
+    drawBars(barsL, 0, 0, 1, 0, 1, 0);
+    drawBars(barsR, 0, 0, 1, 0, 1, 0);
+    reveals.forEach(el => { el.style.opacity = o; el.style.transform = 'none'; });
+    hero.style.transform = 'none';
+    return;
+  }
+
+  // 1. appear
+  const ap = clamp01((t - M.appear.start) / M.appear.duration);
+  const apE = easeAppear(ap);
+  const opacity = lerp(M.appear.fromOpacity, 1, apE);
+  let scale = lerp(M.appear.fromScale, 1, apE);
+  const grow = lerp(V.growFrom, 1, apE);
+
+  // 2. approach (curved path + counter rotation) and rhythm convergence
+  const e = easeApproach(clamp01((t - M.approach.start) / M.approach.duration));
+  const c = e;
+
+  // 3. match pulse: quick calm rise, slower settle, never above peakScale
+  const u = clamp01((t - M.match.start) / M.match.duration);
+  let pulse = 0;
+  if (u > 0 && u < 1) {
+    const rf = M.match.riseFraction;
+    pulse = u < rf ? easeOut(u / rf) : 1 - easeInOut((u - rf) / (1 - rf));
+  }
+  scale *= 1 + (M.match.peakScale - 1) * pulse;
+
+  // haptic-like accent: a ~1px damped jolt of the hero art (no sound)
+  const ht = t - M.match.start;
+  let jolt = 0;
+  if (ht > 0 && ht < M.match.hapticMs) jolt = M.match.hapticPx * Math.sin(ht / 14) * Math.exp(-ht / 45);
+  hero.style.transform = jolt ? `translateY(${jolt.toFixed(2)}px)` : 'none';
+  if (FREEZE === null && ht > 0 && !hapticFired) {
+    hapticFired = true;
+    try { navigator.userActivation && navigator.userActivation.hasBeenActive && navigator.vibrate && navigator.vibrate(8); } catch (_) {}
+  }
+
+  // 5. idle
+  const ti = Math.max(0, t - M.idle.start);
+  const ramp = clamp01(ti / M.idle.breathRampIn);
+  const bw = Math.sin(2 * Math.PI * ti / M.idle.breathPeriod) * ramp;
+  const breath = M.idle.breathAmp * bw;
+  scale *= 1 + M.idle.ringBreathAmp * bw;
+  const idleRot = ti / M.idle.rotationPeriod * 360;
+
+  // modulation depth settles once matched
+  const ds = easeInOut(clamp01((t - V.depthSettle[0]) / (V.depthSettle[1] - V.depthSettle[0])));
+  const depth = lerp(V.depthTalk, V.depthIdle, ds);
+
+  // turn-taking: when one voice is loud the other is quieter; fades out as they sync
+  const turn = 0.5 + 0.5 * Math.sin(2 * Math.PI * t / V.turnPeriod);
+  const loudL = 1 - (1 - c) * V.turnDip * (1 - turn);
+  const loudR = 1 - (1 - c) * V.turnDip * turn;
+
+  const kL = lerp(V.left.k, V.shared.k, c), kR = lerp(V.right.k, V.shared.k, c);
+  drawBars(barsL, phaseL(t), kL, loudL, depth, grow, breath);
+  drawBars(barsR, phaseR(t), kR, loudR, depth, grow, breath);
+
+  const place = (el, cfg) => {
+    const [fx, fy] = cfg.from;
+    const len = Math.hypot(fx, fy) || 1;
+    const px = -fy / len, py = fx / len;                      // perpendicular for the curve
+    const bend = Math.sin(Math.PI * e) * cfg.bulge;
+    const x = fx * (1 - e) + px * bend, y = fy * (1 - e) + py * bend;
+    const rot = cfg.rotate * (1 - e) + idleRot;
+    el.style.opacity = opacity.toFixed(3);
+    el.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) rotate(${rot.toFixed(3)}deg) scale(${scale.toFixed(4)})`;
+  };
+  place(elL, M.left);
+  place(elR, M.right);
+
+  // 4. copy stagger
+  reveals.forEach((el, i) => {
+    const p = easeCopy(clamp01((t - M.copy.start - i * M.copy.stagger) / M.copy.duration));
+    el.style.opacity = p.toFixed(3);
+    el.style.transform = p >= 1 ? 'none' : `translateY(${(M.copy.fromY * (1 - p)).toFixed(2)}px)`;
+  });
+}
+
+/* ---------- loop ---------- */
+function frame(now) {
+  if (FREEZE !== null) { render(FREEZE); readout.textContent = `t=${FREEZE} ms`; return; }
+  if (last === null) last = now;
+  tl += (now - last) * speed;
+  last = now;
+  if (EMBED && tl >= MOTION.embedLoop) replay();
+  render(tl);
+  readout.textContent = `${Math.round(tl)} ms`;
+  requestAnimationFrame(frame);
+}
+function replay() { tl = 0; hapticFired = false; reduced = reduceMQ.matches || params.get('reduced') === '1'; render(0); }
+reduceMQ.addEventListener && reduceMQ.addEventListener('change', replay);
+
+/* ---------- controls ---------- */
+document.getElementById('replay').addEventListener('click', replay);
+document.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => {
+  speed = parseFloat(b.dataset.speed);
+  document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+}));
+const themeBtn = document.getElementById('theme');
+const isDark = () => getComputedStyle(document.documentElement).getPropertyValue('--blend').trim() === 'screen';
+const syncThemeLabel = () => { themeBtn.textContent = isDark() ? 'Light' : 'Dark'; };
+themeBtn.addEventListener('click', () => {
+  document.documentElement.dataset.theme = isDark() ? 'light' : 'dark';
+  syncThemeLabel();
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeLabel);
+syncThemeLabel();
+document.addEventListener('click', ev => { if (!ev.target.closest('#controls')) replay(); });
+
+render(FREEZE !== null ? FREEZE : 0);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

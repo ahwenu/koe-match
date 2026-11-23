@@ -1,0 +1,1085 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Koe Match Ear Swipe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Tokens (light is the default) ---------- */
+  :root {
+    --page: #EAE6E8;
+    --bg: #F8F6F7; --surface: #FFFFFF; --surface-2: #F1EDEF; --line: #ECE6E9;
+    --text: #1F1A1D; --text-2: #756E72;
+    --primary: #E8557A; --primary-soft: #FDE9EE; --on-primary: #FFFFFF;
+    /* accents */
+    --blue: #3C9BE6; --blue-soft: #E4F1FC;
+    --mint: #1FAF97; --mint-soft: #DDF4EE;
+    --yellow: #E9B824; --yellow-soft: #FFF4C9; --on-yellow-soft: #9A7408;
+    /* side mapping: A (left) = blue, B (right) = mint */
+    --side-a: var(--blue); --side-a-soft: var(--blue-soft);
+    --side-b: var(--mint); --side-b-soft: var(--mint-soft);
+    /* mannequin (fallback SVG) */
+    --mq-hi: #FDFCFC; --mq-mid: #E6E1E4; --mq-lo: #C8C1C5; --mq-edge: #B7AFB4;
+    --phone-shadow: 0 30px 80px rgba(31, 26, 29, 0.18), 0 0 0 1px rgba(31, 26, 29, 0.06);
+    --card-shadow: 0 6px 18px rgba(31, 26, 29, 0.06);
+    --ctl-bg: rgba(31, 26, 29, 0.06);
+    --font-body: "Noto Sans JP", "Hiragino Sans", system-ui, sans-serif;
+    --font-num: "Inter", "Noto Sans JP", -apple-system, system-ui, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page: #0A090A;
+      --bg: #121012; --surface: #1E1A1C; --surface-2: #2A2528; --line: #342E31;
+      --text: #F6F1F3; --text-2: #A9A1A5; --primary: #FF6B8B; --primary-soft: #3B2129;
+      --blue: #5AB0F5; --blue-soft: #1C2A38; --mint: #3CCBB0; --mint-soft: #17302A;
+      --yellow: #F7CF4D; --yellow-soft: #3A3218; --on-yellow-soft: #F7CF4D;
+      --mq-hi: #6A6266; --mq-mid: #463F43; --mq-lo: #2C2629; --mq-edge: #221D20;
+      --phone-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+      --card-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+      --ctl-bg: rgba(246, 241, 243, 0.08);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --page: #0A090A;
+    --bg: #121012; --surface: #1E1A1C; --surface-2: #2A2528; --line: #342E31;
+    --text: #F6F1F3; --text-2: #A9A1A5; --primary: #FF6B8B; --primary-soft: #3B2129;
+    --blue: #5AB0F5; --blue-soft: #1C2A38; --mint: #3CCBB0; --mint-soft: #17302A;
+    --yellow: #F7CF4D; --yellow-soft: #3A3218; --on-yellow-soft: #F7CF4D;
+    --mq-hi: #6A6266; --mq-mid: #463F43; --mq-lo: #2C2629; --mq-edge: #221D20;
+    --phone-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    --card-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    --ctl-bg: rgba(246, 241, 243, 0.08);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--page); color: var(--text);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; padding: 32px 16px;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ---------- Phone ---------- */
+  .phone-wrap { position: relative; flex: none; }
+  .phone {
+    position: absolute; left: 0; top: 0;
+    width: 390px; height: 844px; transform-origin: 0 0;
+    background: var(--bg); border-radius: 46px; overflow: hidden;
+    box-shadow: var(--phone-shadow);
+    display: flex; flex-direction: column;
+    user-select: none; -webkit-user-select: none;
+  }
+  .status {
+    height: 47px; flex: none; display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 30px 0 34px; font-family: var(--font-num); font-weight: 600; font-size: 16px;
+  }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+  .status-icons svg { display: block; }
+
+  header.top { padding: 6px 20px 0; flex: none; }
+  .top-row { display: flex; align-items: center; justify-content: space-between; }
+  .title { font-size: 24px; font-weight: 700; letter-spacing: 0.02em; margin: 0; }
+  .round { display: flex; align-items: center; gap: 8px; }
+  .round-label { font-family: var(--font-num); font-weight: 600; font-size: 11px; letter-spacing: 0.08em; color: var(--text-2); }
+  .round-label b { color: var(--on-yellow-soft); font-weight: 600; }
+  .segs { display: flex; gap: 4px; }
+  .seg { width: 18px; height: 4px; border-radius: 2px; background: var(--line); transition: background 160ms; }
+  .seg.on { background: var(--yellow); }
+  .chip {
+    margin-top: 10px; display: inline-flex; align-items: center; gap: 6px;
+    height: 28px; padding: 0 12px 0 10px; border-radius: 14px;
+    background: var(--blue-soft); color: var(--blue); font-size: 12px; font-weight: 500;
+  }
+
+  .banner {
+    margin: 12px 20px 0; flex: none;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+    padding: 11px 14px 12px; box-shadow: var(--card-shadow);
+  }
+  .banner-label { font-size: 11px; font-weight: 500; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+  .banner-label i { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); display: inline-block; }
+  .banner-q { margin-top: 4px; font-size: 16px; font-weight: 700; transition: opacity 180ms; }
+
+  /* ---------- Stage ---------- */
+  .stage {
+    position: relative; flex: 1; min-height: 0; margin-top: 4px;
+    touch-action: none; cursor: grab;
+  }
+  .stage.dragging { cursor: grabbing; }
+  .arcs { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 1; }
+  .arc { fill: none; stroke-width: 2.6; stroke-linecap: round; opacity: 0; animation: arcflow 1.8s linear infinite; }
+  .arcs .a .arc { stroke: var(--side-a); }
+  .arcs .b .arc { stroke: var(--side-b); }
+  .arcs g { transition: opacity 240ms; opacity: 0.32; }
+  .arcs g.active { opacity: 1; }
+  .arc.i2 { animation-delay: 0s; } .arc.i1 { animation-delay: 0.3s; } .arc.i0 { animation-delay: 0.6s; }
+  @keyframes arcflow { 0% { opacity: 0; } 25% { opacity: 0.85; } 60% { opacity: 0.25; } 100% { opacity: 0; } }
+
+  .card {
+    position: absolute; top: 18px; width: 100px; z-index: 2;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+    padding: 14px 8px 10px; text-align: center; box-shadow: var(--card-shadow);
+    --sel: 0; --lift: 0;
+    transform: scale(calc(1 + var(--lift) * 0.03));
+    transition: border-color 200ms;
+  }
+  .card::after {
+    content: ""; position: absolute; inset: -1px; border-radius: 18px; pointer-events: none;
+    border: 2px solid var(--primary); opacity: var(--sel);
+  }
+  .card.left { left: 10px; } .card.right { right: 10px; }
+  .card.playing { border-color: color-mix(in srgb, var(--side) 45%, var(--line)); }
+  .card.left { --side: var(--side-a); --side-soft: var(--side-a-soft); }
+  .card.right { --side: var(--side-b); --side-soft: var(--side-b-soft); }
+  .card-inner { transition: opacity 180ms; }
+  .av-wrap { position: relative; width: 56px; height: 56px; margin: 0 auto; }
+  .avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--surface) 0%, var(--side-soft) 55%, color-mix(in srgb, var(--side) 22%, var(--side-soft)) 100%);
+    color: var(--side); display: grid; place-items: center;
+    font-family: var(--font-num); font-weight: 600; font-size: 20px;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--side) 20%, transparent);
+  }
+  .badge {
+    position: absolute; right: -3px; bottom: -3px; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--mint); border: 2px solid var(--surface); display: grid; place-items: center;
+    opacity: 0; transform: scale(0); z-index: 6;
+  }
+  .badge.show { opacity: 1; transform: scale(1); animation: badgepop 240ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+  @keyframes badgepop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); } }
+  .name { margin-top: 8px; font-size: 15px; font-weight: 700; }
+  .meta { margin-top: 1px; font-size: 11px; color: var(--text-2); font-family: var(--font-num), var(--font-body); }
+  .wave { display: flex; gap: 2px; align-items: center; justify-content: center; height: 18px; margin-top: 7px; }
+  .wave span { width: 3px; border-radius: 2px; background: var(--side); opacity: 0.55; height: calc(var(--h) * 1px); transform-origin: center; }
+  .card.playing .wave span { opacity: 1; animation: wv 0.9s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.13s); }
+  @keyframes wv { from { transform: scaleY(0.35); } to { transform: scaleY(1); } }
+  .quote {
+    margin-top: 8px; background: var(--surface-2); border-radius: 12px; padding: 8px 7px;
+    font-size: 12px; line-height: 1.55; text-align: left; color: var(--text);
+  }
+
+  .head { position: absolute; left: 105px; top: 0; width: 180px; height: 180px; z-index: 4; pointer-events: none; }
+  .layer { position: absolute; left: 0; top: 0; width: 180px; height: 180px; transform-origin: 0 0; will-change: transform, opacity; }
+  .layer > svg, .layer > img { display: block; width: 100%; height: 100%; }
+  .ear.lifted { filter: drop-shadow(0 4px 6px rgba(31, 26, 29, 0.18)); }
+  .head-mode { position: absolute; left: 0; right: 0; bottom: -14px; text-align: center; font-size: 9px; color: var(--text-2); opacity: 0; }
+
+  .now {
+    position: absolute; left: 50%; transform: translateX(-50%); z-index: 3;
+    display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px;
+    border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
+    font-size: 11px; font-weight: 500; white-space: nowrap; box-shadow: var(--card-shadow);
+  }
+  .now .lbl { color: var(--now-c, var(--side-a)); }
+  .now .eq { display: flex; gap: 2px; align-items: flex-end; height: 10px; }
+  .now .eq span { width: 2px; background: var(--now-c, var(--side-a)); border-radius: 1px; height: 10px; animation: wv 0.6s ease-in-out infinite alternate; }
+  .now .eq span:nth-child(2) { animation-delay: -0.2s; } .now .eq span:nth-child(3) { animation-delay: -0.4s; }
+  .pan { position: relative; width: 44px; height: 4px; border-radius: 2px; background: var(--surface-2); }
+  .pan i { position: absolute; top: -2px; left: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--now-c, var(--side-a)); transition: left 400ms cubic-bezier(0.2, 0, 0, 1), background 200ms; }
+  .now.r .pan i { left: 36px; }
+  .now .lr { font-family: var(--font-num); font-weight: 600; font-size: 10px; color: var(--text-2); }
+  .now.paused { opacity: 0.5; } .now.paused .eq span { animation: none; height: 4px; }
+
+  /* ---------- Guide ---------- */
+  .guide { flex: none; padding: 0 20px; text-align: center; }
+  .guide-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 500; }
+  .guide-row .g { color: var(--text-2); transition: color 160ms, transform 160ms; }
+  .guide-row .g.hot { color: var(--primary); }
+  .guide-row .g.l.hot { transform: translateX(-3px); } .guide-row .g.r.hot { transform: translateX(3px); }
+  .replay-audio {
+    width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface);
+    display: grid; place-items: center; cursor: pointer; color: var(--text-2);
+  }
+  .caption { margin-top: 8px; font-size: 12px; color: var(--text-2); }
+  .vhint {
+    margin: 10px auto 0; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px;
+    border-radius: 14px; background: var(--surface-2); font-size: 12px; color: var(--text-2);
+  }
+  .vhint svg { color: var(--primary); }
+
+  /* ---------- Tab bar ---------- */
+  .tabbar {
+    flex: none; height: 86px; margin-top: 12px; background: var(--surface); border-top: 1px solid var(--line);
+    display: grid; grid-template-columns: repeat(5, 1fr); align-items: start; padding-top: 8px; position: relative;
+  }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--text-2); }
+  .tab.active { color: var(--primary); font-weight: 700; }
+  .tab svg { display: block; }
+  .mic {
+    width: 54px; height: 54px; border-radius: 50%; background: var(--primary); color: var(--on-primary);
+    display: grid; place-items: center; margin: -22px auto 0; box-shadow: 0 8px 20px color-mix(in srgb, var(--primary) 35%, transparent);
+    border: 4px solid var(--surface);
+  }
+  .home-ind { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: var(--text); opacity: 0.85; }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: absolute; left: 50%; bottom: 104px; z-index: 20;
+    transform: translate(-50%, 14px); opacity: 0; pointer-events: none;
+    display: flex; align-items: center; gap: 8px; padding: 10px 16px 10px 12px; border-radius: 22px;
+    background: var(--text); color: var(--bg); font-size: 13px; font-weight: 500; white-space: nowrap;
+    transition: transform 180ms cubic-bezier(0.05, 0.7, 0.1, 1), opacity 180ms;
+  }
+  .toast.show { transform: translate(-50%, 0); opacity: 1; }
+  .toast .ic { width: 20px; height: 20px; border-radius: 50%; background: var(--mint); display: grid; place-items: center; color: #fff; flex: none; }
+  .toast.listen .ic { background: var(--primary); }
+
+  /* ---------- Finish ---------- */
+  .finish {
+    position: absolute; inset: 0; z-index: 10; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--bg) 82%, transparent); opacity: 0; pointer-events: none; transition: opacity 240ms;
+  }
+  .finish.show { opacity: 1; pointer-events: auto; }
+  .finish-card {
+    width: 260px; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 22px 20px 18px;
+    text-align: center; box-shadow: var(--card-shadow);
+  }
+  .finish-ic { width: 44px; height: 44px; border-radius: 50%; background: var(--mint-soft); color: var(--mint); display: grid; place-items: center; margin: 0 auto; }
+  .finish h2 { margin: 12px 0 4px; font-size: 18px; }
+  .finish p { margin: 0; font-size: 12px; color: var(--text-2); line-height: 1.6; }
+  .btn-primary {
+    margin-top: 14px; height: 42px; width: 100%; border: 0; border-radius: 21px; background: var(--primary); color: var(--on-primary);
+    font-weight: 700; font-size: 14px; cursor: pointer;
+  }
+
+  .touch-dot {
+    position: absolute; width: 34px; height: 34px; border-radius: 50%; z-index: 9; pointer-events: none;
+    background: color-mix(in srgb, var(--text) 18%, transparent); border: 2px solid color-mix(in srgb, var(--text) 30%, transparent);
+    opacity: 0; transform: translate(-50%, -50%);
+  }
+
+  /* ---------- Controls (outside the phone) ---------- */
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 560px; }
+  .ctl {
+    height: 36px; padding: 0 14px; border-radius: 18px; border: 1px solid transparent; background: var(--ctl-bg);
+    font-size: 13px; cursor: pointer; color: var(--text);
+  }
+  .ctl:hover { border-color: var(--line); }
+  .ctl.on { background: var(--primary-soft); color: var(--primary); }
+  .help { font-size: 12px; color: var(--text-2); text-align: center; max-width: 420px; line-height: 1.6; margin: 0; }
+  kbd { font-family: var(--font-num); font-size: 11px; padding: 1px 5px; border-radius: 4px; background: var(--ctl-bg); }
+
+  /* ---------- Embed ---------- */
+  body.embed { padding: 0; gap: 0; min-height: 0; display: block; overflow: hidden; background: var(--bg); }
+  body.embed .phone { border-radius: 0; box-shadow: none; }
+  body.embed .controls, body.embed .help { display: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .arc, .wave span, .now .eq span { animation: none !important; }
+    .arc { opacity: 0.5; }
+  }
+  .rm .arc, .rm .wave span, .rm .now .eq span { animation: none !important; }
+  .rm .arc { opacity: 0.5; }
+</style>
+</head>
+<body>
+
+<div class="phone-wrap" id="phoneWrap">
+  <div class="phone" id="phone" role="application" aria-label="さがす 耳スワイプのプロトタイプ">
+    <div class="status">
+      <span>9:41</span>
+      <span class="status-icons" aria-hidden="true">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1.5 4.2a9.5 9.5 0 0 1 13 0"/><path d="M4 7a6 6 0 0 1 8 0"/><circle cx="8" cy="10" r="1.1" fill="currentColor" stroke="none"/></svg>
+        <svg width="26" height="12" viewBox="0 0 26 12" fill="none"><rect x="0.5" y="0.5" width="22" height="11" rx="3.5" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="19" height="8" rx="2" fill="currentColor"/><path d="M24.5 4v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".4"/></svg>
+      </span>
+    </div>
+
+    <header class="top">
+      <div class="top-row">
+        <h1 class="title">さがす</h1>
+        <div class="round" aria-live="polite">
+          <span class="round-label">ROUND <b id="roundNum">1</b>/3</span>
+          <span class="segs"><i class="seg on"></i><i class="seg"></i><i class="seg"></i></span>
+        </div>
+      </div>
+      <span class="chip">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v-2a9 9 0 0 1 18 0v2"/><path d="M3 14h3v6H4a1 1 0 0 1-1-1v-5z"/><path d="M21 14h-3v6h2a1 1 0 0 0 1-1v-5z"/></svg>
+        イヤホンで左右から
+      </span>
+    </header>
+
+    <section class="banner">
+      <div class="banner-label"><i></i>2人に同じ質問</div>
+      <div class="banner-q" id="question">Q. 休みの日は、どう過ごしてる？</div>
+    </section>
+
+    <section class="stage" id="stage" aria-label="左右にスワイプして選ぶ">
+      <svg class="arcs" id="arcs" aria-hidden="true"><g class="a active" id="arcsA"></g><g class="b" id="arcsB"></g></svg>
+
+      <article class="card left playing" id="cardL">
+        <div class="card-inner">
+          <div class="av-wrap"><div class="avatar" data-k="initial">A</div><span class="badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
+          <div class="name" data-k="name">Aさん</div>
+          <div class="meta" data-k="meta">34歳 · 東京</div>
+          <div class="wave"></div>
+          <div class="quote" data-k="quote">朝に銭湯へ行って、商店街でお昼。</div>
+        </div>
+      </article>
+
+      <article class="card right" id="cardR">
+        <div class="card-inner">
+          <div class="av-wrap"><div class="avatar" data-k="initial">B</div><span class="badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
+          <div class="name" data-k="name">Bさん</div>
+          <div class="meta" data-k="meta">31歳 · 神奈川</div>
+          <div class="wave"></div>
+          <div class="quote" data-k="quote">家で一日かけて煮込み料理。</div>
+        </div>
+      </article>
+
+      <div class="head" id="head" aria-hidden="true">
+        <div class="layer base" id="layerBase"></div>
+        <div class="layer ear" id="earL"></div>
+        <div class="layer ear" id="earR"></div>
+        <div class="head-mode" id="headMode"></div>
+      </div>
+
+      <div class="now" id="now" aria-live="polite">
+        <span class="eq"><span></span><span></span><span></span></span>
+        <span class="lbl" id="nowLbl">再生中 · Aさん</span>
+        <span class="lr">L</span><span class="pan"><i></i></span><span class="lr">R</span>
+      </div>
+
+      <div class="touch-dot" id="touchDot"></div>
+    </section>
+
+    <section class="guide">
+      <div class="guide-row">
+        <span class="g l" id="guideL">← <span data-g="L">Aさん</span>を選ぶ</span>
+        <button class="replay-audio" id="replayAudio" aria-label="もう一度聴く">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>
+        </button>
+        <span class="g r" id="guideR"><span data-g="R">Bさん</span>を選ぶ →</span>
+      </div>
+      <div class="caption">選びたい側にスワイプすると、その耳が外れて相手のもとへ</div>
+      <div class="vhint">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+        <span id="vhintText">「Aさん」「Bさん」と話しかけてもOK</span>
+      </div>
+    </section>
+
+    <nav class="tabbar" aria-label="タブ">
+      <div class="tab active">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>さがす
+      </div>
+      <div class="tab">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20s-7.5-4.4-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10c0 5.6-7.5 10-7.5 10z"/></svg>マッチ
+      </div>
+      <div class="tab" aria-label="音声で操作">
+        <span class="mic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg></span>
+      </div>
+      <div class="tab">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4.5 6.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10l-4 3.5v-3.5h0a1.5 1.5 0 0 1-1.5-1.5z"/></svg>トーク
+      </div>
+      <div class="tab">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></svg>マイページ
+      </div>
+      <span class="home-ind"></span>
+    </nav>
+
+    <div class="toast" id="toast" role="status"><span class="ic" id="toastIc"></span><span id="toastText"></span></div>
+
+    <div class="finish" id="finish">
+      <div class="finish-card">
+        <div class="finish-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        <h2>3ラウンド完了</h2>
+        <p id="finishSummary"></p>
+        <button class="btn-primary" id="replayBtn">もう一度あそぶ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="controls" id="controls">
+  <button class="ctl" id="voiceL">🎙「<span data-g="L">Aさん</span>」</button>
+  <button class="ctl" id="voiceR">🎙「<span data-g="R">Bさん</span>」</button>
+  <button class="ctl" id="themeBtn">テーマ: 自動</button>
+  <button class="ctl" id="motionBtn">モーション軽減: オフ</button>
+  <button class="ctl" id="resetBtn">最初から</button>
+</div>
+<p class="help">ステージを左右にドラッグ（90px 以上 or 0.5px/ms 以上で確定） / <kbd>←</kbd> <kbd>→</kbd> で確定 / 音声ボタンで音声コマンドを再現。<br>URL: <kbd>?theme=light|dark</kbd> <kbd>?embed=1</kbd> <kbd>?motion=reduce</kbd> <kbd>?assets=fallback</kbd></p>
+
+<script>
+(() => {
+  'use strict';
+
+  /* =====================================================================
+   * MOTION: every timing / threshold used by this prototype.
+   * ===================================================================== */
+  const MOTION = {
+    // drag → lift
+    dragFullPx: 120,            // drag distance that reaches full lift
+    liftTranslatePx: 24,        // ear moves outward up to this
+    liftRaisePx: 4,             // and slightly up
+    liftRotateDeg: 12,          // ear rotates (outer edge up) around its pivot
+    dimOpacity: 0.45,           // opacity of the side not being chosen at full lift
+    // commit thresholds
+    commitDistancePx: 90,
+    commitVelocityPxPerMs: 0.5,
+    velocityWindowMs: 90,
+    // commit sequence
+    popMs: 120, popScale: 1.12,
+    flightMs: 380, flightEase: [0.2, 0.8, 0.2, 1], flightArcPx: 70,
+    landSizePx: 36,
+    badgeMs: 240,
+    // cancel
+    springBackMs: 260, springZeta: 0.82,
+    // toast
+    toastHoldMs: 1500,
+    // next round
+    nextRoundDelayMs: 1400, earOutMs: 140, earReturnMs: 300, earReturnFromScale: 0.85, cardSwapMs: 180,
+    // playback simulation
+    playSideMs: 3000,
+    // voice / keyboard
+    listenMs: 700, preLiftVoiceMs: 240, preLiftKeyMs: 160,
+    // reduce motion
+    reducedFadeOutMs: 120, reducedFadeInMs: 200,
+    // embed demo
+    demoIntervalMs: 4000, demoDragMs: 520, demoHoldMs: 120, demoStartMs: 900,
+    // haptics
+    hapticMs: 10,
+  };
+
+  const ROUNDS = [
+    { q: '休みの日は、どう過ごしてる？',
+      L: { name: 'Aさん', initial: 'A', meta: '34歳 · 東京', quote: '朝に銭湯へ行って、商店街でお昼。' },
+      R: { name: 'Bさん', initial: 'B', meta: '31歳 · 神奈川', quote: '家で一日かけて煮込み料理。' } },
+    { q: '最近、うれしかったことは？',
+      L: { name: 'Cさん', initial: 'C', meta: '29歳 · 埼玉', quote: 'ベランダのバジルがやっと育った。' },
+      R: { name: 'Dさん', initial: 'D', meta: '36歳 · 東京', quote: '久しぶりに友だちと長電話できた。' } },
+    { q: '理想の夜ごはんは？',
+      L: { name: 'Eさん', initial: 'E', meta: '33歳 · 千葉', quote: '駅前の定食屋でさば味噌。' },
+      R: { name: 'Fさん', initial: 'F', meta: '30歳 · 東京', quote: '好きな人と鍋をつつく夜。' } },
+  ];
+
+  const params = new URLSearchParams(location.search);
+  const EMBED = params.get('embed') === '1';
+  const root = document.documentElement;
+  const $ = (id) => document.getElementById(id);
+
+  /* ---------- theme ---------- */
+  const themeParam = params.get('theme');
+  if (themeParam === 'light' || themeParam === 'dark') root.dataset.theme = themeParam;
+  const themeBtn = $('themeBtn');
+  const themeLabel = () => { themeBtn.textContent = 'テーマ: ' + ({ light: 'ライト', dark: 'ダーク' }[root.dataset.theme] || '自動'); };
+  themeLabel();
+  themeBtn.addEventListener('click', () => {
+    const cur = root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+    themeLabel();
+  });
+
+  /* ---------- reduce motion ---------- */
+  const rmQuery = matchMedia('(prefers-reduced-motion: reduce)');
+  let rmForced = params.get('motion') === 'reduce';
+  const reduced = () => rmForced || rmQuery.matches;
+  const motionBtn = $('motionBtn');
+  const syncRm = () => {
+    document.body.classList.toggle('rm', reduced());
+    motionBtn.textContent = 'モーション軽減: ' + (reduced() ? 'オン' : 'オフ');
+    motionBtn.classList.toggle('on', reduced());
+  };
+  motionBtn.addEventListener('click', () => { rmForced = !rmForced; syncRm(); });
+  rmQuery.addEventListener?.('change', syncRm);
+  syncRm();
+
+  if (EMBED) document.body.classList.add('embed');
+
+  /* ---------- phone scale-to-fit (not in embed) ---------- */
+  const phone = $('phone'), wrap = $('phoneWrap');
+  let scale = 1;
+  function fit() {
+    scale = EMBED ? 1 : Math.min(1, (innerWidth - 32) / 390, (innerHeight - 150) / 844);
+    scale = Math.max(scale, 0.4);
+    phone.style.transform = scale === 1 ? '' : `scale(${scale})`;
+    wrap.style.width = 390 * scale + 'px';
+    wrap.style.height = 844 * scale + 'px';
+  }
+  fit();
+
+  /* ---------- easing helpers ---------- */
+  function cubicBezier(x1, y1, x2, y2) {
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+    const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    const sx = (t) => ((ax * t + bx) * t + cx) * t;
+    const sy = (t) => ((ay * t + by) * t + cy) * t;
+    const dx = (t) => (3 * ax * t + 2 * bx) * t + cx;
+    return (x) => {
+      if (x <= 0) return 0; if (x >= 1) return 1;
+      let t = x;
+      for (let i = 0; i < 6; i++) { const e = sx(t) - x; const d = dx(t); if (Math.abs(e) < 1e-5 || Math.abs(d) < 1e-6) break; t -= e / d; }
+      let lo = 0, hi = 1; t = Math.min(1, Math.max(0, t));
+      for (let i = 0; i < 20 && Math.abs(sx(t) - x) > 1e-5; i++) { if (sx(t) < x) lo = t; else hi = t; t = (lo + hi) / 2; }
+      return sy(t);
+    };
+  }
+  const easeFlight = cubicBezier(...MOTION.flightEase);
+  const easeOut = cubicBezier(0.05, 0.7, 0.1, 1);
+  const easeStd = cubicBezier(0.2, 0, 0, 1);
+  const easeInOut = cubicBezier(0.4, 0, 0.2, 1);
+  // damped spring, normalised: f(0)=1 → 0 within springBackMs
+  function springFactor(t01) {
+    const T = MOTION.springBackMs / 1000, z = MOTION.springZeta;
+    const w = 4.6 / (z * T), wd = w * Math.sqrt(1 - z * z), t = t01 * T;
+    if (t01 >= 1) return 0;
+    return Math.exp(-z * w * t) * (Math.cos(wd * t) + (z * w / wd) * Math.sin(wd * t));
+  }
+
+  let gen = 0; // bumps on reset to cancel running tweens/timers
+  const tween = (ms, fn, g = gen) => new Promise((res) => {
+    const t0 = performance.now();
+    const step = (now) => {
+      if (g !== gen) return res(false);
+      const t = ms <= 0 ? 1 : Math.min(1, (now - t0) / ms);
+      fn(t);
+      if (t < 1) requestAnimationFrame(step); else res(true);
+    };
+    requestAnimationFrame(step);
+  });
+  const wait = (ms, g = gen) => new Promise((res) => setTimeout(() => res(g === gen), ms));
+
+  /* =====================================================================
+   * Head assets: layered PNGs + layout.json, with inline-SVG fallback.
+   * Both paths use the same 1000×1000 layer coordinate system.
+   * ===================================================================== */
+  const HEAD_PX = 180;
+  const FALLBACK_LAYOUT = {
+    L: { bbox: { x: 205, y: 338, w: 100, h: 197 }, pivot: { x: 298, y: 420 } },
+    R: { bbox: { x: 695, y: 338, w: 100, h: 197 }, pivot: { x: 702, y: 420 } },
+  };
+  let layout = FALLBACK_LAYOUT;
+  let assetMode = 'fallback';
+
+  const SVG_BASE = `
+<svg viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="mqHead" cx="40%" cy="30%" r="75%">
+      <stop offset="0" style="stop-color:var(--mq-hi)"/><stop offset=".58" style="stop-color:var(--mq-mid)"/><stop offset="1" style="stop-color:var(--mq-lo)"/>
+    </radialGradient>
+    <linearGradient id="mqNeck" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" style="stop-color:var(--mq-lo)"/><stop offset=".45" style="stop-color:var(--mq-mid)"/><stop offset="1" style="stop-color:var(--mq-lo)"/>
+    </linearGradient>
+    <linearGradient id="mqShoulder" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" style="stop-color:var(--mq-mid)"/><stop offset="1" style="stop-color:var(--mq-mid);stop-opacity:0"/>
+    </linearGradient>
+    <linearGradient id="mqChin" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" style="stop-color:var(--mq-lo);stop-opacity:0"/><stop offset="1" style="stop-color:var(--mq-lo);stop-opacity:.9"/>
+    </linearGradient>
+  </defs>
+  <path d="M140 1000 C 165 905, 300 862, 420 848 L 580 848 C 700 862, 835 905, 860 1000 Z" fill="url(#mqShoulder)"/>
+  <path d="M408 630 C 414 715, 408 795, 398 856 L 602 856 C 592 795, 586 715, 592 630 Z" fill="url(#mqNeck)"/>
+  <path d="M410 690 C 450 720, 550 720, 590 690 L 592 740 C 550 760, 450 760, 408 740 Z" fill="url(#mqChin)" opacity=".55"/>
+  <path d="M500 118 C 652 118, 730 236, 730 392 C 730 545, 640 692, 500 704 C 360 692, 270 545, 270 392 C 270 236, 348 118, 500 118 Z" fill="url(#mqHead)"/>
+  <ellipse cx="430" cy="270" rx="120" ry="80" style="fill:var(--mq-hi)" opacity=".45"/>
+</svg>`;
+  const earSvg = (id, mirror) => `
+<svg viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="${id}" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" style="stop-color:var(--mq-lo)"/><stop offset=".6" style="stop-color:var(--mq-mid)"/><stop offset="1" style="stop-color:var(--mq-hi)"/>
+    </linearGradient>
+  </defs>
+  <g ${mirror ? 'transform="translate(1000 0) scale(-1 1)"' : ''}>
+    <path d="M302 352 C 252 330, 206 364, 208 428 C 210 492, 238 534, 292 535 C 306 520, 308 372, 302 352 Z" fill="url(#${id})"/>
+    <path d="M284 388 C 254 382, 240 416, 247 448 C 253 476, 268 492, 286 495" fill="none" style="stroke:var(--mq-edge)" stroke-width="10" stroke-linecap="round" opacity=".7"/>
+  </g>
+</svg>`;
+
+  const layers = { base: $('layerBase'), L: $('earL'), R: $('earR') };
+  function useFallback(reason) {
+    assetMode = 'fallback';
+    layout = FALLBACK_LAYOUT;
+    layers.base.innerHTML = SVG_BASE;
+    layers.L.innerHTML = earSvg('mqEarL', false);
+    layers.R.innerHTML = earSvg('mqEarR', true);
+    $('headMode').textContent = 'fallback: ' + reason;
+    window.__earSwipe && (window.__earSwipe.assetMode = 'fallback');
+  }
+  useFallback('init');
+
+  // layout.json may come in a few shapes; normalise to 1000-unit {bbox, pivot}.
+  function normaliseLayout(j) {
+    if (!j || typeof j !== 'object') return null;
+    const size = Number(j.canvas?.width || j.canvasSize?.width || j.size?.width || j.imageSize?.width ||
+      (Array.isArray(j.size) ? j.size[0] : j.size) || j.width || 1000) || 1000;
+    const pick = (side) => {
+      const keys = side === 'L'
+        ? ['earLeft', 'ear_left', 'ear-left', 'leftEar', 'left_ear', 'left-ear', 'left']
+        : ['earRight', 'ear_right', 'ear-right', 'rightEar', 'right_ear', 'right-ear', 'right'];
+      const pools = [j, j.ears, j.layers, j.parts].filter(Boolean);
+      for (const p of pools) {
+        if (Array.isArray(p)) {
+          const hit = p.find((o) => o && keys.some((k) => String(o.name || o.id || o.file || '').replace(/\.png$/, '') === k));
+          if (hit) return hit;
+        } else for (const k of keys) if (p[k]) return p[k];
+      }
+      return null;
+    };
+    const box = (o, xyxyHint) => {
+      const b = o.bbox || o.box || o.bounds || o.rect || o.boundingBox || o;
+      if (Array.isArray(b) && b.length === 4) {
+        const [a, c, d, e] = b.map(Number);
+        const xyxy = xyxyHint || (d > a && e > c && (a + d > size * 1.02 || c + e > size * 1.02));
+        return xyxy ? { x: a, y: c, w: d - a, h: e - c } : { x: a, y: c, w: d, h: e };
+      }
+      if (b && typeof b === 'object') {
+        if ('x0' in b) return { x: +b.x0, y: +b.y0, w: b.x1 - b.x0, h: b.y1 - b.y0 };
+        if ('minX' in b) return { x: +b.minX, y: +b.minY, w: b.maxX - b.minX, h: b.maxY - b.minY };
+        if ('left' in b && 'right' in b) return { x: +b.left, y: +b.top, w: b.right - b.left, h: b.bottom - b.top };
+        if ('x' in b) return { x: +b.x, y: +b.y, w: +(b.w ?? b.width), h: +(b.h ?? b.height) };
+      }
+      return null;
+    };
+    const pt = (p) => {
+      if (!p) return null;
+      if (Array.isArray(p)) return { x: +p[0], y: +p[1] };
+      if (typeof p === 'object' && 'x' in p) return { x: +p.x, y: +p.y };
+      return null;
+    };
+    const out = {};
+    for (const side of ['L', 'R']) {
+      const o = pick(side);
+      if (!o) return null;
+      const b = box(o, !!(o.bbox_xyxy || o.xyxy));
+      if (!b || !(b.w > 0) || !(b.h > 0)) return null;
+      let pv = pt(o.pivot || o.anchor || o.origin || o.hinge);
+      const norm = [b.x, b.y, b.w, b.h].every((v) => v <= 1.5);
+      const k = (norm ? 1 : 1 / size) * 1000;
+      const nb = { x: b.x * k, y: b.y * k, w: b.w * k, h: b.h * k };
+      if (pv) {
+        const pn = pv.x <= 1.5 && pv.y <= 1.5;
+        pv = { x: pv.x * (pn ? 1000 : 1000 / size), y: pv.y * (pn ? 1000 : 1000 / size) };
+      } else {
+        // default pivot: inner edge (toward the head centre), slightly above middle
+        pv = { x: side === 'L' ? nb.x + nb.w : nb.x, y: nb.y + nb.h * 0.42 };
+      }
+      if (![nb.x, nb.y, nb.w, nb.h, pv.x, pv.y].every(Number.isFinite)) return null;
+      out[side] = { bbox: nb, pivot: pv };
+    }
+    return out;
+  }
+
+  function loadImg(src) {
+    return new Promise((res, rej) => {
+      const im = new Image();
+      im.decoding = 'async';
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error('img ' + src));
+      im.src = src;
+    });
+  }
+  async function tryPngAssets() {
+    if (params.get('assets') === 'fallback') return;
+    const base = '../images/search/';
+    try {
+      const r = await fetch(base + 'layout.json', { cache: 'no-store' });
+      if (!r.ok) throw new Error('layout.json ' + r.status);
+      const lj = normaliseLayout(await r.json());
+      if (!lj) throw new Error('layout.json shape');
+      const [hb, el, er] = await Promise.all([
+        loadImg(base + 'v33-head-base.png'),
+        loadImg(base + 'v33-ear-left.png'),
+        loadImg(base + 'v33-ear-right.png'),
+      ]);
+      if (state !== 'idle') await new Promise((res) => { const iv = setInterval(() => { if (state === 'idle') { clearInterval(iv); res(); } }, 100); });
+      layout = lj;
+      [['base', hb], ['L', el], ['R', er]].forEach(([k, im]) => {
+        im.alt = ''; im.draggable = false;
+        layers[k].replaceChildren(im);
+      });
+      assetMode = 'png';
+      $('headMode').textContent = 'png';
+      window.__earSwipe.assetMode = 'png';
+      layoutStage();
+    } catch (e) {
+      useFallback(e.message);
+      console.info('[ear-swipe] using SVG fallback:', e.message);
+    }
+  }
+
+  /* =====================================================================
+   * Ear transform model (head-local CSS px).
+   * world(x) = P + T + s·R(rot)·(x − P), P = pivot.  transform-origin: 0 0.
+   * ===================================================================== */
+  const K = () => HEAD_PX / 1000;
+  const pivotPx = (side) => ({ x: layout[side].pivot.x * K(), y: layout[side].pivot.y * K() });
+  const centerPx = (side) => { const b = layout[side].bbox; return { x: (b.x + b.w / 2) * K(), y: (b.y + b.h / 2) * K() }; };
+  const rest = () => ({ tx: 0, ty: 0, rot: 0, s: 1, o: 1 });
+  const ears = { L: rest(), R: rest() };
+
+  function renderEar(side) {
+    const e = ears[side], P = pivotPx(side), el = layers[side];
+    el.style.transform = `translate(${e.tx + P.x}px, ${e.ty + P.y}px) rotate(${e.rot}deg) scale(${e.s}) translate(${-P.x}px, ${-P.y}px)`;
+    el.style.opacity = e.o;
+    el.classList.toggle('lifted', Math.abs(e.rot) > 0.6 || e.s !== 1);
+  }
+  const rotV = (v, deg) => { const r = deg * Math.PI / 180, c = Math.cos(r), s = Math.sin(r); return { x: v.x * c - v.y * s, y: v.x * s + v.y * c }; };
+  function earCenterWorld(side) {
+    const e = ears[side], P = pivotPx(side), c = centerPx(side);
+    const v = rotV({ x: (c.x - P.x) * e.s, y: (c.y - P.y) * e.s }, e.rot);
+    return { x: P.x + e.tx + v.x, y: P.y + e.ty + v.y };
+  }
+  function setEarByCenter(side, Q, s, rot, o = ears[side].o) {
+    const P = pivotPx(side), c = centerPx(side);
+    const v = rotV({ x: (c.x - P.x) * s, y: (c.y - P.y) * s }, rot);
+    ears[side] = { tx: Q.x - P.x - v.x, ty: Q.y - P.y - v.y, rot, s, o };
+    renderEar(side);
+  }
+
+  /* =====================================================================
+   * DOM / data
+   * ===================================================================== */
+  const stage = $('stage'), head = $('head');
+  const cards = { L: $('cardL'), R: $('cardR') };
+  const guides = { L: $('guideL'), R: $('guideR') };
+  let round = 0;          // index into ROUNDS
+  let state = 'idle';     // idle | dragging | springing | committing | finished
+  const picks = [];
+
+  function buildWaves() {
+    const hs = [6, 11, 16, 9, 14, 7, 12, 17, 10, 6, 13, 8];
+    document.querySelectorAll('.wave').forEach((w, j) => {
+      w.innerHTML = hs.map((h, i) => `<span style="--h:${hs[(i + j * 5) % hs.length]};--i:${i}"></span>`).join('');
+    });
+  }
+  buildWaves();
+
+  function fillRound() {
+    const r = ROUNDS[round];
+    for (const side of ['L', 'R']) {
+      const p = r[side];
+      cards[side].querySelectorAll('[data-k]').forEach((n) => { n.textContent = p[n.dataset.k]; });
+      document.querySelectorAll(`[data-g="${side}"]`).forEach((n) => { n.textContent = p.name; });
+    }
+    $('question').textContent = 'Q. ' + r.q;
+    $('vhintText').textContent = `「${r.L.name}」「${r.R.name}」と話しかけてもOK`;
+    $('roundNum').textContent = round + 1;
+    document.querySelectorAll('.seg').forEach((s, i) => s.classList.toggle('on', i <= round));
+  }
+
+  function layoutStage() {
+    // centre the cards vertically in the stage, then align the head so the ear pivots sit at avatar-centre height
+    const cardH = Math.max(cards.L.offsetHeight, cards.R.offsetHeight);
+    const cardTop = Math.max(12, Math.round((stage.clientHeight - cardH) / 2 - 8));
+    cards.L.style.top = cards.R.style.top = cardTop + 'px';
+    const sr = stage.getBoundingClientRect();
+    const ar = cards.L.querySelector('.avatar').getBoundingClientRect();
+    const avCy = (ar.top + ar.height / 2 - sr.top) / scale;
+    const earY = (pivotPx('L').y + pivotPx('R').y) / 2;
+    const top = Math.round(avCy - earY);
+    head.style.top = top + 'px';
+    $('now').style.top = (top + HEAD_PX + 8) + 'px';
+    drawArcs(top);
+    renderEar('L'); renderEar('R');
+  }
+
+  function drawArcs(headTop) {
+    const mk = (cx, cy, r, dir) => {
+      const a0 = (dir < 0 ? 180 : 0) - 34, a1 = (dir < 0 ? 180 : 0) + 34;
+      const p = (a) => [cx + r * Math.cos(a * Math.PI / 180), cy + r * Math.sin(a * Math.PI / 180)];
+      const [x0, y0] = p(a0), [x1, y1] = p(a1);
+      return `M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+    };
+    const headLeft = head.offsetLeft;
+    for (const [side, g, dir] of [['L', $('arcsA'), -1], ['R', $('arcsB'), 1]]) {
+      const c = centerPx(side), b = layout[side].bbox;
+      const outerX = headLeft + (side === 'L' ? b.x : b.x + b.w) * K();
+      const cy = headTop + c.y;
+      g.innerHTML = [0, 1, 2].map((i) => `<path class="arc i${i}" d="${mk(outerX - dir * 2, cy, 10 + i * 11, dir)}"/>`).join('');
+    }
+  }
+
+  /* ---------- playback simulation (L → R alternating) ---------- */
+  let playSide = 'L', playTimer = null;
+  function setPlay(side) {
+    playSide = side;
+    const now = $('now');
+    now.classList.toggle('r', side === 'R');
+    now.style.setProperty('--now-c', side === 'L' ? 'var(--side-a)' : 'var(--side-b)');
+    $('nowLbl').textContent = '再生中 · ' + ROUNDS[round][side].name;
+    cards.L.classList.toggle('playing', side === 'L');
+    cards.R.classList.toggle('playing', side === 'R');
+    $('arcsA').classList.toggle('active', side === 'L');
+    $('arcsB').classList.toggle('active', side === 'R');
+  }
+  function startPlayback() {
+    stopPlayback();
+    $('now').classList.remove('paused');
+    setPlay('L');
+    playTimer = setInterval(() => setPlay(playSide === 'L' ? 'R' : 'L'), MOTION.playSideMs);
+  }
+  function stopPlayback() {
+    clearInterval(playTimer); playTimer = null;
+    $('now').classList.add('paused');
+    $('arcsA').classList.remove('active'); $('arcsB').classList.remove('active');
+    cards.L.classList.remove('playing'); cards.R.classList.remove('playing');
+  }
+  $('replayAudio').addEventListener('click', (e) => { e.stopPropagation(); if (state === 'idle') startPlayback(); });
+  $('replayAudio').addEventListener('pointerdown', (e) => e.stopPropagation());
+
+  /* ---------- lift (drag progress p ∈ [-1, 1], + = right) ---------- */
+  let lastP = 0;
+  function applyLift(p) {
+    lastP = p;
+    const lr = Math.max(p, 0), ll = Math.max(-p, 0);
+    ears.R = { tx: MOTION.liftTranslatePx * lr, ty: -MOTION.liftRaisePx * lr, rot: -MOTION.liftRotateDeg * lr, s: 1, o: 1 };
+    ears.L = { tx: -MOTION.liftTranslatePx * ll, ty: -MOTION.liftRaisePx * ll, rot: MOTION.liftRotateDeg * ll, s: 1, o: 1 };
+    renderEar('L'); renderEar('R');
+    cards.R.style.opacity = 1 - (1 - MOTION.dimOpacity) * ll;
+    cards.L.style.opacity = 1 - (1 - MOTION.dimOpacity) * lr;
+    cards.R.style.setProperty('--lift', lr); cards.L.style.setProperty('--lift', ll);
+    cards.R.style.setProperty('--sel', (lr * 0.55).toFixed(3)); cards.L.style.setProperty('--sel', (ll * 0.55).toFixed(3));
+    guides.R.classList.toggle('hot', lr > 0.05); guides.L.classList.toggle('hot', ll > 0.05);
+  }
+
+  /* ---------- pointer drag ---------- */
+  let drag = null;
+  stage.addEventListener('pointerdown', (e) => {
+    if (state !== 'idle' || EMBED_DEMO.running || e.button > 0) return;
+    if (e.target.closest('button')) return;
+    drag = { id: e.pointerId, x0: e.clientX, samples: [{ x: e.clientX, t: performance.now() }] };
+    try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+    state = 'dragging';
+    stage.classList.add('dragging');
+  });
+  stage.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const now = performance.now();
+    drag.samples.push({ x: e.clientX, t: now });
+    while (drag.samples.length > 2 && now - drag.samples[0].t > MOTION.velocityWindowMs) drag.samples.shift();
+    const dx = (e.clientX - drag.x0) / scale;
+    applyLift(Math.max(-1, Math.min(1, dx / MOTION.dragFullPx)));
+  });
+  const endDrag = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const now = performance.now();
+    drag.samples.push({ x: e.clientX, t: now });
+    const dx = (e.clientX - drag.x0) / scale;
+    const s = drag.samples.filter((p) => now - p.t <= MOTION.velocityWindowMs);
+    const a = s[0] || drag.samples[0], b = s[s.length - 1];
+    const v = b.t > a.t ? (b.x - a.x) / scale / (b.t - a.t) : 0;
+    drag = null;
+    stage.classList.remove('dragging');
+    const byDist = Math.abs(dx) >= MOTION.commitDistancePx;
+    const byVel = Math.abs(v) > MOTION.commitVelocityPxPerMs && Math.sign(v) === Math.sign(dx) && Math.abs(dx) > 8;
+    window.__earSwipe.lastRelease = { dx: Math.round(dx), v: +v.toFixed(3), committed: byDist || byVel };
+    if (e.type !== 'pointercancel' && (byDist || byVel)) {
+      applyLift(Math.max(-1, Math.min(1, dx / MOTION.dragFullPx)));
+      commit(dx > 0 ? 'R' : 'L');
+    } else springBack();
+  };
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+
+  async function springBack() {
+    state = 'springing';
+    const p0 = lastP;
+    const ok = await tween(MOTION.springBackMs, (t) => applyLift(p0 * (reduced() ? 1 - easeStd(t) : springFactor(t))));
+    if (!ok) return;
+    applyLift(0);
+    state = 'idle';
+  }
+
+  /* ---------- toast ---------- */
+  let toastTimer = null;
+  const ICON_CHECK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const ICON_MIC = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/></svg>';
+  function toast(text, kind) {
+    const t = $('toast');
+    $('toastText').textContent = text;
+    $('toastIc').innerHTML = kind === 'listen' ? ICON_MIC : ICON_CHECK;
+    t.classList.toggle('listen', kind === 'listen');
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), MOTION.toastHoldMs);
+  }
+
+  /* ---------- commit ---------- */
+  async function commit(side) {
+    state = 'committing';
+    const g = gen;
+    stopPlayback();
+    // vibrate only after a real user gesture (Chrome blocks it otherwise, e.g. in the embed demo)
+    try { if (navigator.vibrate && (navigator.userActivation ? navigator.userActivation.hasBeenActive : true)) navigator.vibrate(MOTION.hapticMs); } catch (_) {}
+    const other = side === 'L' ? 'R' : 'L';
+    cards[other].style.opacity = MOTION.dimOpacity;
+    guides[side].classList.add('hot'); guides[other].classList.remove('hot');
+
+    const avatar = cards[side].querySelector('.avatar');
+    const hr = head.getBoundingClientRect(), ar = avatar.getBoundingClientRect();
+    const E = side === 'R'
+      ? { x: (ar.left - hr.left) / scale + 8, y: (ar.top - hr.top) / scale + 8 }
+      : { x: (ar.right - hr.left) / scale - 8, y: (ar.top - hr.top) / scale + 8 };
+    const b = layout[side].bbox;
+    const sEnd = MOTION.landSizePx / (Math.max(b.w, b.h) * K());
+    const landRot = side === 'R' ? -14 : 14;
+
+    if (reduced()) {
+      const o0 = ears[side];
+      if (!await tween(MOTION.reducedFadeOutMs, (t) => { ears[side] = { ...o0, o: 1 - t }; renderEar(side); }, g)) return;
+      setEarByCenter(side, E, sEnd, landRot, 0);
+      if (!await tween(MOTION.reducedFadeInMs, (t) => { ears[side].o = t; renderEar(side); }, g)) return;
+    } else {
+      const e0 = { ...ears[side] };
+      // pop: scale 1 → 1.12 around the ear centre
+      const C0 = earCenterWorld(side);
+      if (!await tween(MOTION.popMs, (t) => setEarByCenter(side, C0, e0.s + (MOTION.popScale - e0.s) * easeOut(t), e0.rot, 1), g)) return;
+      // flight: quadratic curve, arcing up
+      const S = earCenterWorld(side);
+      const Cp = { x: (S.x + E.x) / 2, y: Math.min(S.y, E.y) - MOTION.flightArcPx };
+      const r0 = e0.rot;
+      if (!await tween(MOTION.flightMs, (t) => {
+        const k = easeFlight(t), u = 1 - k;
+        const Q = { x: u * u * S.x + 2 * u * k * Cp.x + k * k * E.x, y: u * u * S.y + 2 * u * k * Cp.y + k * k * E.y };
+        setEarByCenter(side, Q, MOTION.popScale + (sEnd - MOTION.popScale) * k, r0 + (landRot - r0) * k, 1);
+      }, g)) return;
+    }
+    // land
+    cards[side].style.setProperty('--sel', 1);
+    cards[side].style.opacity = 1;
+    cards[side].querySelector('.badge').classList.add('show');
+    const name = ROUNDS[round][side].name;
+    picks.push(name);
+    toast(`${name}を選びました · ${round < ROUNDS.length - 1 ? '次のラウンドへ' : '結果へ'}`, 'ok');
+    window.__earSwipe.lastCommit = { side, name, round: round + 1, reduced: reduced() };
+
+    if (!await wait(MOTION.nextRoundDelayMs, g)) return;
+    await nextRound(side, g);
+  }
+
+  async function nextRound(side, g) {
+    if (round >= ROUNDS.length - 1) {
+      $('finishSummary').textContent = '選んだ声: ' + picks.join(' · ');
+      $('finish').classList.add('show');
+      state = 'finished';
+      return;
+    }
+    // ear fades off the card, cards cross-fade to the next pair
+    const e0 = { ...ears[side] };
+    const inners = document.querySelectorAll('.card-inner');
+    const q = $('question');
+    await tween(MOTION.earOutMs, (t) => {
+      ears[side] = { ...e0, o: 1 - t }; renderEar(side);
+      inners.forEach((n) => { n.style.opacity = 1 - t; }); q.style.opacity = 1 - t;
+    }, g);
+    if (g !== gen) return;
+    round++;
+    fillRound();
+    for (const s of ['L', 'R']) { cards[s].querySelector('.badge').classList.remove('show'); }
+    applyLift(0);
+    cards.L.style.setProperty('--sel', 0); cards.R.style.setProperty('--sel', 0);
+    guides.L.classList.remove('hot'); guides.R.classList.remove('hot');
+    // ear returns to the head: fade + scale in around its centre
+    const c = centerPx(side), s0 = reduced() ? 1 : MOTION.earReturnFromScale;
+    setEarByCenter(side, c, s0, 0, 0);
+    await tween(MOTION.earReturnMs, (t) => {
+      const k = easeStd(t);
+      setEarByCenter(side, c, s0 + (1 - s0) * k, 0, k);
+      const ci = Math.min(1, t * MOTION.earReturnMs / MOTION.cardSwapMs);
+      inners.forEach((n) => { n.style.opacity = ci; }); q.style.opacity = ci;
+    }, g);
+    if (g !== gen) return;
+    ears[side] = rest(); renderEar(side);
+    state = 'idle';
+    startPlayback();
+  }
+
+  /* ---------- programmatic commits (keyboard / voice / demo) ---------- */
+  async function preLiftAndCommit(side, ms) {
+    state = 'committing';
+    const dir = side === 'R' ? 1 : -1, g = gen;
+    if (ms <= 0) { commit(side); return; } // reduce motion: no pre-lift, just the fade
+    if (!await tween(ms, (t) => applyLift(dir * easeInOut(t)), g)) return;
+    commit(side);
+  }
+  function keyCommit(side) { if (state === 'idle') preLiftAndCommit(side, reduced() ? 0 : MOTION.preLiftKeyMs); }
+  async function voiceCommit(side) {
+    if (state !== 'idle') return;
+    state = 'committing';
+    const g = gen;
+    toast(`「${ROUNDS[round][side].name}」を聞き取りました`, 'listen');
+    if (!await wait(MOTION.listenMs, g)) return;
+    preLiftAndCommit(side, reduced() ? 0 : MOTION.preLiftVoiceMs);
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); keyCommit('R'); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); keyCommit('L'); }
+  });
+  $('voiceL').addEventListener('click', () => voiceCommit('L'));
+  $('voiceR').addEventListener('click', () => voiceCommit('R'));
+
+  /* ---------- reset / replay ---------- */
+  function resetAll() {
+    gen++;
+    drag = null; stage.classList.remove('dragging');
+    round = 0; picks.length = 0;
+    $('finish').classList.remove('show');
+    $('toast').classList.remove('show');
+    document.querySelectorAll('.badge').forEach((b) => b.classList.remove('show'));
+    document.querySelectorAll('.card-inner').forEach((n) => { n.style.opacity = 1; });
+    $('question').style.opacity = 1;
+    ears.L = rest(); ears.R = rest();
+    applyLift(0);
+    cards.L.style.setProperty('--sel', 0); cards.R.style.setProperty('--sel', 0);
+    fillRound();
+    state = 'idle';
+    startPlayback();
+  }
+  $('replayBtn').addEventListener('click', resetAll);
+  $('resetBtn').addEventListener('click', resetAll);
+
+  /* ---------- embed demo loop: right, left, right … ---------- */
+  const EMBED_DEMO = { running: false, seq: ['R', 'L', 'R'], i: 0 };
+  async function demoSwipe(side) {
+    EMBED_DEMO.running = true;
+    state = 'dragging';
+    const g = gen, dot = $('touchDot');
+    const dir = side === 'R' ? 1 : -1;
+    const x0 = 195, y0 = head.offsetTop + HEAD_PX * 0.55;
+    dot.style.left = x0 + 'px'; dot.style.top = y0 + 'px';
+    const dist = MOTION.dragFullPx + 10;
+    const ok = await tween(MOTION.demoDragMs, (t) => {
+      const k = easeInOut(t);
+      dot.style.opacity = Math.min(1, t * 4) * 0.9;
+      dot.style.left = (x0 + dir * dist * k) + 'px';
+      applyLift(dir * Math.min(1, (dist * k) / MOTION.dragFullPx));
+    }, g);
+    if (!ok) { EMBED_DEMO.running = false; return; }
+    await wait(MOTION.demoHoldMs, g);
+    dot.style.transition = 'opacity 160ms'; dot.style.opacity = 0;
+    setTimeout(() => { dot.style.transition = ''; }, 200);
+    EMBED_DEMO.running = false;
+    commit(side);
+  }
+  function startDemo() {
+    setTimeout(function tick() {
+      if (state === 'finished') { resetAll(); EMBED_DEMO.i = 0; }
+      else if (state === 'idle') { demoSwipe(EMBED_DEMO.seq[EMBED_DEMO.i % EMBED_DEMO.seq.length]); EMBED_DEMO.i++; }
+      setTimeout(tick, MOTION.demoIntervalMs);
+    }, MOTION.demoStartMs);
+  }
+
+  /* ---------- boot ---------- */
+  window.__earSwipe = { MOTION, get state() { return state; }, get round() { return round + 1; }, assetMode, ears, layout: () => layout };
+  fillRound();
+  addEventListener('resize', () => { fit(); layoutStage(); });
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(layoutStage);
+  layoutStage();
+  startPlayback();
+  tryPngAssets();
+  if (EMBED) startDemo();
+})();
+</script>
+</body>
+</html>

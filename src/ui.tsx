@@ -1,8 +1,6 @@
 /** 画面見出しと操作ボタンの共通部品。 */
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from './theme';
-
-const titleFont = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, serif' });
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { fontFamilies, useThemeColors } from './theme';
 
 /** 各タブの導入を表示する。 */
 export function ScreenIntro({ eyebrow, title, subtitle }: {
@@ -10,11 +8,12 @@ export function ScreenIntro({ eyebrow, title, subtitle }: {
   title: string;
   subtitle?: string;
 }) {
+  const colors = useThemeColors();
   return (
     <View style={styles.intro}>
-      {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-      <Text accessibilityRole="header" style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {eyebrow ? <Text style={[styles.eyebrow, { color: colors.accentDark }]}>{eyebrow}</Text> : null}
+      <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>{title}</Text>
+      {subtitle ? <Text style={[styles.subtitle, { color: colors.muted }]}>{subtitle}</Text> : null}
     </View>
   );
 }
@@ -27,6 +26,7 @@ export function ActionButton({ label, onPress, variant = 'primary', disabled, ac
   disabled?: boolean;
   accessibilityLabel?: string;
 }) {
+  const colors = useThemeColors();
   const secondary = variant === 'secondary';
   return (
     <Pressable
@@ -37,34 +37,33 @@ export function ActionButton({ label, onPress, variant = 'primary', disabled, ac
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        secondary ? styles.secondary : styles.primary,
+        secondary
+          ? { backgroundColor: colors.surface, borderColor: colors.line }
+          : { backgroundColor: colors.primary, borderColor: colors.primary },
         pressed && styles.pressed,
         disabled && styles.disabled,
       ]}
     >
-      <Text style={[styles.buttonLabel, secondary && styles.secondaryLabel]}>{label}</Text>
+      <Text style={[styles.buttonLabel, { color: secondary ? colors.ink : colors.onPrimary }]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   intro: { gap: 7, alignItems: 'flex-start' },
-  eyebrow: { color: colors.accent, fontSize: 10, fontWeight: '800', letterSpacing: 2 },
-  title: { color: colors.ink, fontFamily: titleFont, fontSize: 30, fontWeight: '700', lineHeight: 38 },
-  subtitle: { color: colors.muted, fontSize: 13, lineHeight: 21 },
+  eyebrow: { fontFamily: fontFamilies.bodyBold, fontSize: 11, letterSpacing: 1.2 },
+  title: { fontFamily: fontFamilies.bodyBold, fontSize: 26, lineHeight: 38 },
+  subtitle: { fontFamily: fontFamilies.body, fontSize: 13, lineHeight: 21 },
   button: {
     alignItems: 'center',
-    borderRadius: 15,
+    borderRadius: 16,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 48,
+    minHeight: 52,
     paddingHorizontal: 15,
     paddingVertical: 10,
   },
-  primary: { backgroundColor: colors.accent, borderColor: colors.accent },
-  secondary: { backgroundColor: colors.surface, borderColor: colors.line },
-  buttonLabel: { color: colors.white, fontSize: 14, fontWeight: '700', textAlign: 'center' },
-  secondaryLabel: { color: colors.accentDark },
+  buttonLabel: { fontFamily: fontFamilies.bodyBold, fontSize: 14, textAlign: 'center' },
   pressed: { opacity: 0.78 },
   disabled: { opacity: 0.42 },
 });

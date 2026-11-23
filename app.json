@@ -4,23 +4,23 @@
     "slug": "koe-match",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/icon-v33.png",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ahwenu.koematch"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#773D68",
-        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#E8557A",
+        "foregroundImage": "./assets/android-icon-foreground-v33.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.ahwenu.koematch"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon-v33.png"
     },
     "plugins": [
       [

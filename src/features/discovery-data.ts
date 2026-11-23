@@ -26,7 +26,7 @@ export const voiceCandidates: readonly VoiceCandidate[] = [
     tagline: '寄り道を、写真に残す',
     introduction: '凛です。知らない道に入って、気になる景色を写真に撮るのが好き。次の休みに、どんな場所へ行きたい？',
     interests: ['写真', '街歩き'],
-    color: '#F3DCC8',
+    color: '#F8DAE4',
     initials: '凛',
     voices: {
       left: require('../../assets/voices/rin-left.mp3'),
@@ -54,7 +54,7 @@ export const voiceCandidates: readonly VoiceCandidate[] = [
     tagline: '季節のおやつを一緒に味わう',
     introduction: '紗良です。週末は季節のお菓子を焼いて、友達に味見してもらいます。子どもの頃から好きなおやつってありますか？',
     interests: ['お菓子作り', '紅茶'],
-    color: '#EDDCEE',
+    color: '#FFF1B8',
     initials: '紗',
     voices: {
       left: require('../../assets/voices/sara-left.mp3'),
