@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Koe Match",
+    "slug": "koe-match",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ahwenu.koematch"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#773D68",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ahwenu.koematch"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "プロフィールの音声を作るため、あなたが許可したときに声を録音します。",
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "scheme": "koematch"
+  }
+}

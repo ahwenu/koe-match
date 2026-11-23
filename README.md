@@ -1,0 +1,47 @@
+# Koe Match
+
+声で相手を知り、初対面の会話を練習するハッカソン向けのスマホアプリ。React Native、TypeScript、Expo SDK 58で実装しています。[Secret Tenderの既存版](https://github.com/Jun0908/ethglobal-mumbai-2026-AIBot/tree/3c4ea47)を設計の参考にしています。
+
+- **見つける** — 架空の成人候補４人の声を左右で聴き比べ、スワイプかボタンで候補を絞ります。両者の興味はデモ内の設定です。試聴はヘッドホンを推奨します。
+- **プロフィール** — Aqua Voiceで話した自己紹介や日記を入力欄から保存し、紹介文を作成・編集・承認します。記録と紹介文の通常の保存先は端末です。
+- **仮想デート** — 選んだ候補と３場面を進めます。選択肢のタップや、Aqua Voiceで入力した番号・返答で進行します。最後に、実際に会ったときに聞ける質問や選んだ返答を見返せます。
+
+## 起動
+
+Node.js 22.22以降を使います。
+
+```sh
+npm ci
+npm run ios
+```
+
+`npm run ios` はローカルのXcodeとCocoaPodsを使い、開発ビルドをシミュレーターにインストールします。ブラウザでデモする場合は `npm run web` を実行します。AIや音声クローンの外部サービスを設定せず、端末内の紹介文生成・合成音声・台本による分岐で３機能を試せます。
+
+iPhoneでは [Aqua Voiceのキーボード](https://aquavoice.com/guide/getting-started-iphone) を設定し、記録や仮想デートの入力欄で切り替えて話します。書き起こしを確認したら、追加または送信ボタンを押します。
+
+## 任意のAI・音声クローン
+
+ローカル開発用APIは初期設定では無効です。有効にする場合は、プロジェクト直下の `.env.local` に使うサービスだけ設定します。
+
+```dotenv
+EXPO_PUBLIC_KOE_API_URL=http://127.0.0.1:8765
+OPENAI_API_KEY=
+ELEVENLABS_API_KEY=
+```
+
+1. 別のターミナルで `npm run api` を実行します。
+2. iOSシミュレーターでアプリを再起動します。
+3. OpenAIを設定すると、紹介文の草案や仮想デート中の自由な質問への返答をリクエストできます。
+4. ElevenLabsを設定すると、iOSのプロフィールで自分の声を録音し、送信に同意して登録できます。登録後は紹介文の試聴や登録済み音声の削除ができます。ElevenLabs側で本人確認を求められたときはサービス側で完了してください。
+
+APIはループバックにのみバインドする開発用サーバーです。APIキーはサーバー側に保持します。物理端末での外部サービス利用や本番のユーザー間マッチングには別途、認証付きバックエンドが必要です。試聴候補の音声は架空のプロフィール向けに [Irodori-TTS](https://huggingface.co/Aratako/Irodori-TTS-v4.1-Small) で合成し、写真は画像生成で用意しました。
+
+## 検証と開発記録
+
+```sh
+npm run typecheck
+npm run lint
+npx expo export --platform all
+```
+
+開発手法とAqua Voiceの利用は [Qiita向けの未公開下書き](docs/qiita-draft.md) に追記します。
