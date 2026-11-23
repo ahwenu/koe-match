@@ -8,6 +8,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import DateScreen from './src/features/date';
 import DiscoveryScreen from './src/features/discovery';
 import ProfileScreen from './src/features/profile';
+import WelcomeScreen from './src/features/welcome';
 import { colors } from './src/theme';
 import { useDemoApi } from './src/demo-api';
 import type { Candidate, VoiceProfile } from './src/types';
@@ -29,8 +30,9 @@ function speak(text: string) {
   }).catch(() => {});
 }
 
-/** 波形アイコンと３画面の切り替えを含むアプリ本体。 */
+/** 起動画面とデモの３画面を管理する。 */
 export default function App() {
+  const [started, setStarted] = useState(false);
   const [tab, setTab] = useState<Tab>('discovery');
   const [profile, setProfile] = useState(emptyProfile);
   const [ready, setReady] = useState(false);
@@ -72,6 +74,17 @@ export default function App() {
   function openDate(candidate: Candidate) {
     setMatch(previous => ({ candidate, sequence: (previous?.sequence ?? 0) + 1 }));
     openTab('date');
+  }
+
+  if (!started) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <SafeAreaView style={styles.safeArea}>
+          <WelcomeScreen onStart={() => setStarted(true)} />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
   }
 
   return (
