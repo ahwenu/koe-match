@@ -140,6 +140,12 @@ function DateSession({ candidate, onDiscover, speak, active = true, voiceRequest
     setStage(next);
   }
 
+  /** 練習を途中で離れるときは、会話の読み上げも終了する。 */
+  function leavePractice(next: 'picker' | 'review') {
+    void Speech.stop().catch(() => {});
+    moveTo(next);
+  }
+
   /** 選んだ場所で新しい練習を始める。 */
   function startPractice() {
     const noAnswers: DateAnswer[] = [];
@@ -388,7 +394,7 @@ function DateSession({ candidate, onDiscover, speak, active = true, voiceRequest
   return (
     <View style={styles.practice}>
       <View style={[styles.practiceHeader, { backgroundColor: colors.surface, borderBottomColor: colors.line }]}>
-        <Pressable onPress={() => moveTo('picker')} accessibilityRole="button" accessibilityLabel="場所の選択へ戻る" style={styles.back}>
+        <Pressable onPress={() => leavePractice('picker')} accessibilityRole="button" accessibilityLabel="場所の選択へ戻る" style={styles.back}>
           <ChevronLeft size={22} color={colors.ink} />
         </Pressable>
         <DiscoveryAvatar size={36} candidate={candidate} borderColor={colors.line} borderWidth={1} />
@@ -502,7 +508,7 @@ function DateSession({ candidate, onDiscover, speak, active = true, voiceRequest
             </View>
             <Text style={[styles.hintBold, { color: colors.ink }]}>話して返事</Text>
           </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => moveTo('review')} style={styles.end}>
+          <Pressable accessibilityRole="button" onPress={() => leavePractice('review')} style={styles.end}>
             <Text style={[styles.hint, { color: colors.muted }]}>シーン終了</Text>
           </Pressable>
         </View>

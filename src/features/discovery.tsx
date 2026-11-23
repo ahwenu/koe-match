@@ -316,7 +316,7 @@ export default function DiscoveryScreen({ active = true, voiceRequest, onMatch, 
     setSelection(null);
     setShowTranscript(false);
     setPicks((previous) => previous.length === round ? [...previous, candidate] : previous);
-    if (round === 2) void playSound('match');
+    if (round === 2 && isActive.current) void playSound('match');
     scroll.current?.scrollTo({ y: 0, animated: false });
   }, [landed, left, playSound, right, round, selection, setPicks]);
 
